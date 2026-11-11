@@ -2,7 +2,7 @@
   <img src="assets/banner.svg" alt="teardown: static triage for binaries and apps. Every finding ships its evidence and its limits." width="100%">
 </p>
 
-**Point it at a file, learn what it is and what deserves a second look. Every conclusion comes with its evidence and the reasons it may be wrong, and the file is never executed.** One Go binary, standard library only: a CLI, an HTTP API with a live dashboard, and an MCP server for AI agents.
+**Point it at a file, learn what it is and what deserves a second look. Every conclusion comes with its evidence and the reasons it may be wrong, and the file is never executed.** Where a finding is about code, it shows the code: the instructions around a call, the bytes around a string, the source lines of a script. One Go binary, standard library only: a CLI, an HTTP API with a live dashboard, and an MCP server for AI agents.
 
 [![Go 1.24+](https://img.shields.io/badge/go-1.24%2B-00ADD8)](go.mod)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -12,13 +12,13 @@
 English · [Português](README.pt-BR.md)
 
 <p align="center">
-  <img src="docs/screenshots/hero.png" alt="The teardown dashboard showing the report for dropper.bin: the navigation rail, the breadcrumbs and the section tabs, a critical risk score of 100, hashes with copy buttons and the first of 19 findings with its evidence and limitations" width="100%">
+  <img src="docs/screenshots/hero.png" alt="The teardown dashboard showing the report for dropper.bin: the navigation rail, the breadcrumbs and the section tabs, a critical risk score of 100, hashes with copy buttons and the first of 19 findings with its evidence and the start of its Code panel" width="100%">
 </p>
 <p align="center"><sub>The dashboard report for <code>dropper.bin</code>, a harmless synthetic file that only looks like a dropper to a static scanner (<code>go run ./examples/gensamples -dropper</code>).</sub></p>
 
 ## Why
 
-- **Evidence, not verdicts.** A finding is `{id, title, severity, evidence[], limitations[]}`, and a test fails when one lacks evidence or limitations. The 0-100 risk score prints its own arithmetic. It orders a review queue; it does not call anything malware.
+- **Evidence, not verdicts.** A finding is `{id, title, severity, evidence[], limitations[]}` plus, when it is about code, the `code[]` behind it, and a test fails when one lacks evidence or limitations. The 0-100 risk score prints its own arithmetic. It orders a review queue; it does not call anything malware.
 - **Safe to point at hostile files.** Nothing is loaded, run, evaluated or unpacked beyond small capped metadata. Parsers are bounded, cancellable and panic-safe, and fuzzed. Uploads live in a private directory and are deleted as soon as the analysis ends.
 - **One binary, four ways in.** Terminal report, JSON for CI, a dashboard and a self-contained HTML report for people, MCP tools for agents. They all call the same engine, so they cannot disagree.
 
@@ -28,10 +28,11 @@ English · [Português](README.pt-BR.md)
 - **One streaming pass** for MD5, SHA-1, SHA-256, Shannon entropy (overall and in up to 512 windows) and string extraction (ASCII and UTF-16LE).
 - **Strings that mean something.** Classified into URLs, domains, IPs, e-mail, paths, registry keys, commands, user agents, API names, base64 and hex. Secrets (AWS keys, GitHub and Slack tokens, PEM keys, JWTs) are redacted in every output: four characters and the length, never the value.
 - **Findings with a documented score.** Packing, RWX sections, missing hardening, suspicious import clusters, embedded indicators, zip-slip, risky Electron and Android settings, privacy leaks such as PDB paths. [Catalogue and score](docs/rules.md).
-- **CLI** with `analyze`, `strings`, `hash`, `diff`, `serve`, `mcp`, `completion`; human, JSON, Markdown, SARIF and HTML output; `--fail-on` as a CI gate; colour that respects `NO_COLOR`.
-- **Dashboard** at `teardown serve`: drop a file anywhere on the page, watch analyses from other clients arrive live, read the report with charts and tables, `Ctrl+K` to jump anywhere, light and dark themes, keyboard friendly, works offline.
+- **Code evidence.** The call sites of suspicious imports in PE images with the instructions around each call, a hex window around the strings behind a finding (secrets masked byte for byte), the source lines of Electron settings and of strings in ASAR archives and stored ZIP entries. A small built-in x86 and x86-64 decoder, checked against the Go toolchain's own disassembler; no decompiler, no emulator. [How it works and what it does not show](docs/code-evidence.md).
+- **CLI** with `analyze`, `strings`, `hash`, `diff`, `disasm`, `xrefs`, `hexdump`, `serve`, `mcp`, `completion`; human, JSON, Markdown, SARIF and HTML output; `--fail-on` as a CI gate; colour that respects `NO_COLOR`.
+- **Dashboard** at `teardown serve`: drop a file anywhere on the page, watch analyses from other clients arrive live, read the report with charts, tables and a Code panel in each finding, `Ctrl+K` to jump anywhere, light and dark themes, keyboard friendly, works offline.
 - **HTML report** with `analyze --html`: the same report view as one self-contained file that opens from disk, offline, and cannot make a network request.
-- **MCP server** with five tools (`analyze_file`, `list_strings`, `hash_file`, `entropy_profile`, `diff_files`), confined to the directories you allow.
+- **MCP server** with eight tools (`analyze_file`, `list_strings`, `hash_file`, `entropy_profile`, `diff_files`, `disassemble`, `find_calls`, `read_bytes`), confined to the directories you allow.
 
 ## Quick start
 
@@ -42,7 +43,7 @@ go build -o bin/teardown ./cmd/teardown        # on Windows the binary is bin\te
 ./bin/teardown analyze examples/samples/upx-like.exe
 ```
 
-The samples in `examples/samples/` are tiny, harmless files generated by this repository's own fixture builders (`go run ./examples/gensamples`). Then start the dashboard and fill it with the samples:
+The samples in `examples/samples/` are tiny, harmless files generated by this repository's own fixture builders (`go run ./examples/gensamples`). One more is generated on demand, because antivirus products may flag a file that imports process-injection functions: `go run ./examples/gensamples -dropper` writes `examples/samples/dropper.bin`, a PE whose imports cover the process-injection chain and whose code calls them the way compilers do (its entry point just returns, and it is not meant to be run). The code-evidence examples below use it. Then start the dashboard and fill it with the samples:
 
 ```bash
 ./bin/teardown serve                  # http://127.0.0.1:7777, keep it running
@@ -120,6 +121,92 @@ $ teardown analyze examples/samples/upx-like.exe --json
 ```
 
 (Trimmed and re-indented here; the real output is longer and indented by line.) Every key is documented in the [schema reference](docs/api/schema.md).
+
+### Code evidence
+
+<p align="center">
+  <img src="docs/screenshots/code.png" alt="One finding open in the dashboard: Imports cover the full process-injection chain, with its evidence and its Code panel. Two blocks of disassembly are visible, each with the call the finding is about highlighted, the imported function named beside it and a Copy button" width="100%">
+</p>
+
+A finding that is about code shows the code. This is the process-injection finding of the demo file, which is generated on demand (`go run ./examples/gensamples -dropper`; it is harmless, and it is not committed because antivirus products may flag a file that imports these functions). Rows are cut where a line says `…`:
+
+```console
+$ teardown analyze examples/samples/dropper.bin
+…
+── Findings (19)
+  [HIGH]     imports.process-injection  confidence medium
+      Imports cover the full process-injection chain (allocate, write, execute)
+      evidence: allocate or map memory in another process: KERNEL32.dll!VirtualAllocEx
+      evidence: write to another process: KERNEL32.dll!WriteProcessMemory
+      evidence: start or hijack a thread there: KERNEL32.dll!CreateRemoteThread
+      (+2 more evidence lines, see -v)
+      code: 4 blocks
+        call to KERNEL32.dll!VirtualAllocEx in .text  (.text · 0x1400010bd · x86-64)
+            0x1400010bd  41 b8 a4 01 00 00        mov r8d, 0x1a4
+            0x1400010c3  ff 15 ef 10 00 00        call qword ptr [rip+0x10ef]  ; KERNEL32.dll!OpenProcess
+            …
+            0x1400010d5  41 b8 00 10 00 00        mov r8d, 0x1000
+            0x1400010db  41 b9 00 30 00 00        mov r9d, 0x3000
+            0x1400010e1  c7 44 24 20 40 00 00 00  mov dword ptr [rsp+0x20], 0x40
+          > 0x1400010e9  ff 15 b1 10 00 00        call qword ptr [rip+0x10b1]  ; KERNEL32.dll!VirtualAllocEx
+            0x1400010ef  48 89 44 24 50           mov qword ptr [rsp+0x50], rax
+            …
+        call to KERNEL32.dll!WriteProcessMemory in .text  (.text · 0x1400010e1 · x86-64)
+            …
+        (+1 more code block, see --code-all or --json)
+        limits: x86-64 code decoded as a linear sweep (ARM64 and other instruction sets
+                are not supported): data inside a code section can be read as
+                instructions, and one wrong byte shifts what follows.
+```
+
+The `>` marks the call the finding is about, and the lines above it show how its arguments are set up. teardown does not interpret them: read against the Windows x64 calling convention (arguments in `rcx`, `rdx`, `r8`, `r9`, then on the stack), these lines ask another process for a 4 KiB allocation of type `0x3000` (commit and reserve) with protection `0x40` (read, write and execute), a detail an import list cannot show. The same code is one command away, for any import, address or offset:
+
+```console
+$ teardown xrefs examples/samples/dropper.bin VirtualAllocEx --before 3 --after 2
+dropper.bin: KERNEL32.dll!VirtualAllocEx
+1 call site (PE x86-64, linear sweep of the executable sections)
+
+  #1  call [IAT]  0x1400010e9  (file offset 0x4e9, section .text)
+      0x1400010d5  41 b8 00 10 00 00        mov r8d, 0x1000
+      0x1400010db  41 b9 00 30 00 00        mov r9d, 0x3000
+      0x1400010e1  c7 44 24 20 40 00 00 00  mov dword ptr [rsp+0x20], 0x40
+    > 0x1400010e9  ff 15 b1 10 00 00        call qword ptr [rip+0x10b1]  ; KERNEL32.dll!VirtualAllocEx
+      0x1400010ef  48 89 44 24 50           mov qword ptr [rsp+0x50], rax
+      0x1400010f4  48 8b 4c 24 48           mov rcx, qword ptr [rsp+0x48]
+
+  limits: x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not
+          supported): data inside a code section can be read as instructions, and one wrong byte
+          shifts what follows.
+  limits: Only calls through the import table and import thunks are found: functions resolved at run
+          time are invisible, and packed or protected code hides its real calls.
+  limits: A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and
+          the code shows what is called, not why.
+
+$ teardown disasm examples/samples/dropper.bin --at 0x1400010e9 -n 3
+; dropper.bin: PE, x86-64, section .text, 3 instructions from 0x1400010e9 (file offset 0x4e9)
+; Linear sweep: the bytes are decoded one after another, so data can be shown as code and the sweep can lose sync.
+; x86 and x86-64 only; bytes that are not understood are shown as db. Not a decompiler: nothing is executed, emulated or resolved.
+0x1400010e9  ff 15 b1 10 00 00  call qword ptr [rip+0x10b1]  ; KERNEL32.dll!VirtualAllocEx
+0x1400010ef  48 89 44 24 50     mov qword ptr [rsp+0x50], rax
+0x1400010f4  48 8b 4c 24 48     mov rcx, qword ptr [rsp+0x48]
+; more code follows: continue with --at 0x1400010f9
+
+$ teardown hexdump examples/samples/dropper.bin --at 0x4e9 -n 16
+00000004e9  ff 15 b1 10 00 00 48 89 44 24 50 48 8b 4c 24 48  |......H.D$PH.L$H|
+16 bytes shown (file offsets 0x4e9 to 0x4f8 of 19200); continue with --at 0x4f9
+```
+
+`xrefs` answers "who calls this import" (`--list` shows every import that is called), `disasm` decodes from an address, a file offset or the entry point, and `hexdump` shows raw bytes; each takes `--json`, and each is bounded ([commands](docs/cli.md#disasm)). The same blocks are in `findings[].code` of the JSON report (`analyze --json`, the HTTP API and the `analyze_file` MCP tool), in the Markdown, SARIF and HTML reports and in a Code panel inside each finding of the dashboard; `analyze --no-code` leaves them out and `--code-all` prints every block.
+
+What it shows:
+
+- **Call sites of imports**, for the findings made from imports (process injection, keylogging, anti-debug, crypto, networking, download and execute, services, token privileges): up to 6 per function, with 8 instructions before the call and 4 after, in PE images for x86-64 and x86.
+- **Hex windows** around the strings behind `secrets.*`, `indicators.network`, `indicators.suspicious-commands` and `indicators.persistence-registry`. Secrets stay redacted here too: every byte of a credential is shown as `2a` and `*`.
+- **Source lines** with line numbers and three lines of context for the strings and the Electron settings that sit in text entries of ASAR archives, in stored ZIP entries and in text files.
+
+What it does not do: decompile, emulate, unpack or run anything; read ARM64 or other non-x86 code; find call sites in ELF (PLT and GOT, which is next) or Mach-O files; see imports that a program resolves at run time; show the text of deflated ZIP entries (no rule scans them, so only stored entries and ASAR entries give source lines). It is a linear sweep, so data can be shown as code and the sweep can lose its place; every block says so in its limitations, never changes a severity or the score, and does not call anything malicious. 32-bit PE images are handled but tested only with a hand-made image.
+
+The decoder is checked against the Go toolchain's own disassembler (`go tool objdump`): over `cmd/gofmt` and `cmd/go` built for Windows on amd64 and 386 it was compared on 4,318,469 instructions, agreed on the length of every one and fell back to `db` for none. The instructions the Go toolchain itself cannot decode are left out of that figure, and it covers the code the Go compiler emits and nothing else. How to run the comparison, the numbers and the caveats: [docs/code-evidence.md](docs/code-evidence.md#how-it-was-checked).
 
 ### Gate a build in CI
 
@@ -206,7 +293,7 @@ In Windows PowerShell type `curl.exe`, because `curl` is an alias for `Invoke-We
 </p>
 
 - **Home.** Drop a file anywhere on the page, click the drop zone, or press `Ctrl+K` and choose Upload. Each upload shows its progress. Below the drop zone the list shows the recent analyses (risk, name, type, size, age, delete with confirmation). Filter it by name or type, order it by age or by risk with the switch in the sub bar, and watch it update live: a `curl` upload from another terminal appears without a reload, first as "Analysing" and then with its risk.
-- **Report** at `#/analysis/<id>`. The page header with the file name, type, tags and the JSON and Delete buttons; the risk ring and how the score is computed; tiles and hashes with copy buttons; findings sorted by severity with a severity filter, their evidence and limitations; the hardening checklist; the entropy profile with the packing threshold; sections with entropy bars and access flags; imports as an accordion per library (functions that findings cite are highlighted); strings by category with search and filters (secrets stay redacted); format details and limitations. The tab pills in the sub bar take you to a section, show how many items it has and follow the scroll, and the pills at the right of the bar carry the risk, the size and the type. Every chart has a Chart/Table toggle.
+- **Report** at `#/analysis/<id>`. The page header with the file name, type, tags and the JSON and Delete buttons; the risk ring and how the score is computed; tiles and hashes with copy buttons; findings sorted by severity with a severity filter, their evidence, the code behind them in a Code panel (monospace tables of address, bytes and instruction, the flagged line marked, a Copy button, a notice when a block is only a window) and limitations; the hardening checklist; the entropy profile with the packing threshold; sections with entropy bars and access flags; imports as an accordion per library (functions that findings cite are highlighted); strings by category with search and filters (secrets stay redacted); format details and limitations. The tab pills in the sub bar take you to a section, show how many items it has and follow the scroll, and the pills at the right of the bar carry the risk, the size and the type. Every chart has a Chart/Table toggle.
 - **Command palette.** `Ctrl+K` opens a recent analysis, jumps to a part of a report, copies a hash, uploads a file or switches the theme.
 
 <p align="center">
@@ -226,7 +313,7 @@ $ teardown analyze examples/samples/upx-like.exe --html report.html
 wrote report.html (risk 27/100 medium, 5 findings)
 ```
 
-`report.html` (about 240 KB) is the dashboard's report page in one file, with the same rail, bars and tab pills (here plain `#fragment` links): styles, scripts and the report itself are inlined, so it opens from disk, offline, and can be attached to a ticket or an e-mail.
+`report.html` (about 260 KB) is the dashboard's report page in one file, with the same rail, bars and tab pills (here plain `#fragment` links): styles, scripts and the report itself are inlined, so it opens from disk, offline, and can be attached to a ticket or an e-mail.
 
 <p align="center">
   <img src="docs/screenshots/export-light.png" alt="The exported HTML report of upx-like.exe in the light theme: the same layout as the dashboard, with a Copy JSON button in the page header" width="100%">
@@ -247,18 +334,28 @@ wrote report.html (risk 27/100 medium, 5 findings)
 | `hash_file` | MD5, SHA-1, SHA-256 and the PE import hash |
 | `entropy_profile` | Overall entropy plus up to 512 windows |
 | `diff_files` | What changed between two files |
+| `disassemble` | x86 and x86-64 instructions at an address, a file offset or the entry point, as a code block |
+| `find_calls` | The call sites of an imported function in a PE image, each with the instructions around it |
+| `read_bytes` | A hex and ASCII window of the raw bytes of a file, as a code block |
 
 A real exchange, fed from [`examples/mcp-session.jsonl`](examples/mcp-session.jsonl) (responses shortened; the paths in messages are elided):
 
 ```console
 $ teardown mcp --root examples/samples < examples/mcp-session.jsonl
 {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{"listChanged":false}},"serverInfo":{"name":"teardown","title":"teardown static triage","version":"dev"}, …}}
-{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"analyze_file", …}, {"name":"list_strings", …}, {"name":"hash_file", …}, {"name":"entropy_profile", …}, {"name":"diff_files", …}]}}
+{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"analyze_file", …}, {"name":"list_strings", …}, {"name":"hash_file", …}, {"name":"entropy_profile", …}, {"name":"diff_files", …}, {"name":"disassemble", …}, {"name":"find_calls", …}, {"name":"read_bytes", …}]}}
 {"jsonrpc":"2.0","id":5,"result":{"content":[{"type":"text","text":"path \"../etc/passwd\" is outside the allowed roots; only files inside … can be analysed"}],"isError":true}}
 …
 ```
 
-Setup for Claude Desktop and Claude Code, and the full transcript, are in the [MCP guide](docs/mcp.md).
+An agent that reads a finding can follow it to the code. With the demo file of the previous section in `examples/samples/`, one request asks who calls `VirtualAllocEx` (the server answers a request without the handshake; in PowerShell quote the JSON with single quotes and write `examples\samples`):
+
+```console
+$ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"find_calls","arguments":{"path":"dropper.bin","api":"VirtualAllocEx","before":3,"after":2}}}' | teardown mcp --root examples/samples
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\n  \"file\": {\n    \"name\": \"dropper.bin\",\n    \"size\": 19200\n  },\n  \"api\": \"VirtualAllocEx\",\n  \"imports\": [\"KERNEL32.dll!VirtualAllocEx\"],\n  \"arch\": \"x86-64\",\n  \"total\": 1,\n  \"sites\": [\n    {\n      \"api\": \"KERNEL32.dll!VirtualAllocEx\",\n      \"kind\": \"call\",\n      \"address\": \"0x1400010e9\",\n      \"offset\": 1257,\n      \"section\": \".text\",\n      \"code\": {\n        \"kind\": \"disasm\",\n        \"title\": \"call to KERNEL32.dll!VirtualAllocEx in .text\", …
+```
+
+The text of the answer is the same code block the report carries: the six instructions around the call at `0x1400010e9`, the call flagged and named in a `note`, and the limitations of the view. [`read_bytes`](docs/mcp.md#read_bytes) and [`disassemble`](docs/mcp.md#disassemble) read any offset or address, and every code tool keeps to the `--root` directories. Setup for Claude Desktop and Claude Code, the schemas and the full transcript are in the [MCP guide](docs/mcp.md).
 
 ## Architecture
 
@@ -270,16 +367,23 @@ flowchart LR
   AN["analyze: one pipeline"] --> SN["sniff: type"]
   AN --> HS["hash + entropy + strings: one pass"]
   AN --> FM["format parsers: pe elf macho go archive asar wasm gguf"]
-  AN --> RU["rules: findings + risk"]
+  FM --> XR["xref: call sites of imports"]
+  DA["disasm: x86 and x86-64 decoder"] --> XR
+  XR --> RU["rules: findings + risk, with the code behind them"]
+  AN --> RU
+  RU --> EV["evidence pass: hex windows, source lines"]
   SN --> RP[("report: teardown.report/v1")]
   HS --> RP
   FM --> RP
   RU --> RP
+  EV --> RP
   RP --> RN["render: text, Markdown, HTML"]
   RP --> UI["report view: dashboard and HTML report"]
+  XR --> CV["codeview: disasm, hexdump, xrefs, MCP code tools"]
+  DA --> CV
 ```
 
-One pipeline produces one data contract, and every surface is a thin shell around the two. More in [docs/architecture.md](docs/architecture.md).
+One pipeline produces one data contract, and every surface is a thin shell around the two; the small decoder and its readers feed the findings and the code commands alike. More in [docs/architecture.md](docs/architecture.md).
 
 ## Project layout
 
@@ -289,13 +393,17 @@ internal/analyze/       the pipeline: sniff, one-pass hashing, parser, rules, re
 internal/report/        the teardown.report/v1 contract (leaf package)
 internal/sniff/         content-type detection by magic bytes and structure
 internal/format/*/      one parser per format: pe elf macho goinfo archive asar wasm gguf
+internal/disasm/        the x86 and x86-64 decoder, with its fuzz target and the developer oracles
+internal/hexdump/       bounded hex and ASCII windows
+internal/xref/          call sites of the imports of a PE image, with the code around each
+internal/codeview/      windows at an address or an offset: the engine of disasm, hexdump and the MCP code tools
 internal/rules/         findings engine and risk score (docs/rules.md is generated from it)
 internal/render/        terminal, Markdown and HTML output
 internal/server/        HTTP API, security middleware, server-sent events, OpenAPI document
 internal/mcp/           MCP server over stdio
 internal/cli/           subcommands, flags, completion
 web/                    the dashboard and the Aurora UI kit (embedded with go:embed), the shared report view
-docs/                   architecture, command reference, HTTP API, schema, rules, MCP guide
+docs/                   architecture, command reference, code evidence, HTTP API, schema, rules, MCP guide
 examples/               generated samples, CI gate scripts, upload scripts, an MCP session
 testdata/               golden sample report
 ```
@@ -311,17 +419,20 @@ testdata/               golden sample report
 | `--min-string` | `analyze` | `5` | Minimum string length |
 | `--max-strings` | `analyze` | `2000` | String items kept in the report |
 | `--timeout` | `analyze` | `1m` | Give up after this long |
+| `--no-code`, `--code-all` | `analyze` | off | Leave the code behind the findings out of every output, or print every block of each finding in full (the terminal shows 3 blocks of 24 lines by default) |
+| `--at`, `--offset`, `-n` / `--count`, `--length`, `--arch` | `disasm`, `hexdump` | entry point, 24 instructions, 128 bytes | Where and how much to show; at most 256 instructions or 4096 bytes |
+| `--before`, `--after`, `--max`, `--list` | `xrefs` | 8, 4, 10 | Instructions around each call (at most 40 and 20), call sites to show (at most 100), or the list of called imports |
 | `--color`, `--ascii`, `--width` | `analyze`, `strings`, `hash`, `diff` | `auto` | Terminal output |
 | `NO_COLOR` | environment | unset | Any non-empty value disables colour |
 | `TEARDOWN_ASCII` | environment | unset | Any non-empty value switches to ASCII bars |
 
 ## Security notes
 
-- **The target is never executed**, loaded, evaluated or decompressed beyond small capped metadata entries.
-- **Bounded everywhere.** Every count, offset and size read from a file is checked against the file size before any allocation, every list is capped, every long loop honours the context, and one analysis has a 60 second deadline. A parser crash becomes a finding and the rest of the report survives.
+- **The target is never executed**, loaded, evaluated or decompressed beyond small capped metadata entries. The decoder turns bytes into text and does nothing else with them.
+- **Bounded everywhere.** Every count, offset and size read from a file is checked against the file size before any allocation, every list is capped, every long loop honours the context, and one analysis has a 60 second deadline. A parser crash becomes a finding and the rest of the report survives. The decoder never panics or reads past its input (it is fuzzed), the scan for call sites has byte, instruction and site limits and says when it reached one, and a finding carries at most 12 code blocks of 64 lines.
 - **The server is for you, on your machine.** It binds to loopback by default and answers only loopback `Host` headers (DNS-rebinding defence), refuses cross-origin `POST` and `DELETE`, sends no CORS headers and a strict Content-Security-Policy. Uploads are streamed into a private directory under random names, size-capped to the byte, and deleted right after analysis. It has no authentication and no TLS: do not expose it to a network you do not trust. [Details](docs/api/http.md#security-model).
 - **MCP is confined.** Files open through `os.Root` below the allowed directories only; escaping symlinks, directories and devices are refused.
-- **Secrets stay redacted** in every output: terminal, JSON, Markdown, the API, MCP and the HTML report.
+- **Secrets stay redacted** in every output: terminal, JSON, Markdown, the API, MCP and the HTML report, and in the hex windows behind a finding, where every byte of a credential is masked.
 - **Reports are safe to open.** Text from the analysed file is rendered as text, never as markup. The HTML report is a single offline file with a Content-Security-Policy that allows no network access, and its embedded JSON cannot be closed by hostile names or strings.
 - No telemetry, no runtime network access, no third-party modules.
 
@@ -329,30 +440,36 @@ Vulnerabilities: see [SECURITY.md](SECURITY.md).
 
 ### Limitations
 
-teardown is a first look, not a sandbox or an antivirus. It does not disassemble, emulate or unpack (a small disassembler for code evidence is on the roadmap). Packers and protectors hide code and imports from static analysis; imports resolved at run time are invisible. Findings are heuristics: each lists how it can be a false positive. Authenticode and code signatures are detected, not verified. Android permissions are read from the manifest heuristically. PDF, SQLite, safetensors, images and compression formats are recognised but not parsed. Reports live in memory and disappear when the server stops.
+teardown is a first look, not a sandbox or an antivirus. It does not decompile, emulate or unpack. Its small decoder reads x86 and x86-64 code only (ARM64 comes later), as a linear sweep that can show data as code and lose its place, and it finds the call sites of imports in PE images only (ELF and Mach-O are next). Packers and protectors hide code and imports from static analysis; imports resolved at run time are invisible. Findings are heuristics: each lists how it can be a false positive. Authenticode and code signatures are detected, not verified. Android permissions are read from the manifest heuristically. PDF, SQLite, safetensors, images and compression formats are recognised but not parsed. Reports live in memory and disappear when the server stops.
 
 ## Testing
 
 ```bash
-go test ./...                   # offline, about 25 seconds
+go test ./...                   # offline, well under a minute
 go test -race -p 1 ./...        # race detector, one package at a time (needs cgo; CI runs it on Linux, macOS and Windows; several minutes)
 make fuzz FUZZTIME=20s          # every native fuzz target, 20 s each
 ```
 
-576 test functions (about 2,800 cases with their subtests) in 25 packages, plus 18 fuzz targets. The suite generates its own fixtures in code (no third-party binaries), runs a "never panics" sweep over every parser (every prefix length, corrupted bytes), fuzzes the sniffer and each parser, tests the HTTP layer with `httptest` and MCP over in-memory pipes (including root-escape and symlink attempts), pins the report contract with a golden file, and checks the dashboard assets and the HTML report (hostile file names and strings, U+2028, Content-Security-Policy hashes, no external URLs, size).
+782 test functions (about 4,500 cases with their subtests and fuzz seeds) in 31 packages, plus 31 fuzz targets. The decoder has table-driven tests with hand-checked encodings, a fuzz target and two developer tests that compare it with the Go toolchain's disassembler (they run only on request, see [docs/code-evidence.md](docs/code-evidence.md#how-it-was-checked)); the call-site engine is tested on fixtures that contain real code. The suite generates its own fixtures in code (no third-party binaries), runs a "never panics" sweep over every parser (every prefix length, corrupted bytes), fuzzes the sniffer and each parser, tests the HTTP layer with `httptest` and MCP over in-memory pipes (including root-escape and symlink attempts), pins the report contract with a golden file, and checks the dashboard assets and the HTML report (hostile file names and strings, U+2028, Content-Security-Policy hashes, no external URLs, size).
 
 ## Roadmap
 
-**Planned, ready by 15 November 2026: code evidence.** Today teardown shows what it found (API names, strings, section flags). The next version shows the code behind each finding, for developers:
+**On the main branch now: code evidence** (it is not in a tagged release yet). teardown shows the code behind its findings, for developers ([how it works](docs/code-evidence.md)):
 
-- a hex dump, with offsets, of the bytes that triggered a finding;
-- the call sites of suspicious imports with the disassembly around them, for example where `VirtualAllocEx`, `WriteProcessMemory` and `CreateRemoteThread` are called (a small built-in x86 and x86-64 disassembler, checked against the Go toolchain's own);
-- the matching source lines for scripts inside ASAR and ZIP files;
-- all of it through new CLI commands (`disasm`, `xrefs`, `hexdump`), the report, the dashboard and MCP tools that agents can call.
+- a small x86 and x86-64 decoder, checked against the Go toolchain's own disassembler;
+- the call sites of the imports behind a finding, with the instructions around each call, in PE images for x86-64 (32-bit PE images are handled but tested only with a hand-made image), for example where `VirtualAllocEx`, `WriteProcessMemory` and `CreateRemoteThread` are called;
+- a hex dump around the strings behind a finding, with secrets masked byte for byte;
+- the matching source lines for Electron findings and for strings in ASAR archives and stored ZIP entries (deflated ZIP entries are not scanned);
+- all of it through the commands `hexdump`, `disasm` and `xrefs`, the report (JSON, Markdown, SARIF, HTML), the dashboard and the MCP tools `read_bytes`, `disassemble` and `find_calls`.
 
-It will still not be a decompiler, and ARM64 comes later.
+It is not a decompiler, an emulator or an unpacker, and it reads x86 and x86-64 only.
 
-Other ideas, in rough order, not promises:
+What comes next, in rough order, not promises and without dates:
+
+- Call sites for ELF executables (PLT and GOT), then for Mach-O.
+- Decoding ARM64 code.
+
+Other ideas, in the same spirit:
 
 - Parsers for safetensors, SQLite and PDF structure; .NET metadata and Java class details.
 - Verifying Authenticode and macOS code signatures instead of only detecting them.
@@ -368,4 +485,4 @@ Small and dependency-free is the point. Read [CONTRIBUTING.md](CONTRIBUTING.md) 
 
 ## Credits
 
-teardown is inspired by [REA](https://github.com/morluto/rea), which showed how useful findings that carry evidence and limitations are when an AI agent can ask for them over MCP. teardown is an independent, clean-room project: not affiliated with or derived from REA, and much narrower in scope (static triage only, no disassembler or decompiler). The comparison is in [docs/inspired-by-rea.md](docs/inspired-by-rea.md). The dashboard is built on the Aurora UI kit (one stylesheet and two scripts: zero dependencies, MIT, part of this repository in `web/`).
+teardown is inspired by [REA](https://github.com/morluto/rea), which showed how useful findings that carry evidence and limitations are when an AI agent can ask for them over MCP. teardown is an independent, clean-room project: not affiliated with or derived from REA, and much narrower in scope (static triage, with a small x86 decoder for code evidence and no decompiler). The comparison is in [docs/inspired-by-rea.md](docs/inspired-by-rea.md). The dashboard is built on the Aurora UI kit (one stylesheet and two scripts: zero dependencies, MIT, part of this repository in `web/`).

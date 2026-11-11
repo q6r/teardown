@@ -27,6 +27,9 @@ make fuzz FUZZTIME=20s   # every fuzz target, 20 seconds each
 make web-check    # node --check on the dashboard scripts (only when you touched web/)
 ```
 
+If you touch `internal/disasm`, also run the decoder oracle against the Go toolchain's disassembler; the
+commands are in [docs/code-evidence.md](docs/code-evidence.md#how-it-was-checked).
+
 The dashboard is built on the Aurora UI kit: `web/aurora.css`, `web/aurora.js` and `web/aurora-charts.js`
 (zero dependencies, MIT, part of this repository). Project-specific styling and behaviour belong in
 `web/app.css` and `web/app.js` (the dashboard), `web/report-view.*` (the report page, shared by the dashboard
@@ -45,6 +48,8 @@ internal/analyze/    the pipeline: sniff -> one-pass hash/entropy/strings -> par
 internal/report/     the teardown.report/v1 contract (leaf package)
 internal/sniff/      content-type detection
 internal/format/*/   one parser per format: pe, elf, macho, goinfo, archive, asar, wasm, gguf
+internal/disasm/     x86 and x86-64 decoder; internal/hexdump/ bounded hex windows
+internal/xref/       call sites of the imports of a PE image; internal/codeview/ windows behind disasm, hexdump and the MCP code tools
 internal/rules/      findings engine and risk score (docs/rules.md is generated from it)
 internal/server/     HTTP API; internal/mcp/ MCP over stdio; internal/cli/ subcommands
 internal/testfixtures/  programmatic builders for tiny valid sample files

@@ -163,6 +163,26 @@ $ curl -s -o /dev/null -w "%{http_code}\n" -X DELETE http://127.0.0.1:7777/api/a
 An id that is unknown, malformed, deleted or evicted answers `404 not_found`; the id
 is never echoed back.
 
+### Code evidence in a report
+
+A finding made from imports, strings or script settings carries the code behind it in `findings[].code`: the
+instructions around a call, a hex and ASCII window, or source lines ([code evidence](../code-evidence.md),
+[schema](schema.md#findingscode)). It is part of the report, so it comes with `POST /api/analyze` and
+`GET /api/analyses/{id}` and there is no route for it. Blocks are bounded (at most 12 per finding, 64 lines of
+200 characters each), so a report grows by a bounded amount: the 19 KB `dropper.bin` of this repository
+(generated on demand with `go run ./examples/gensamples -dropper`) answers with about 67 KB of JSON. Secrets
+are masked in the blocks as everywhere else. A fragment of the answer for that file, trimmed with `…`:
+
+```console
+$ curl -s -F file=@examples/samples/dropper.bin http://127.0.0.1:7777/api/analyze
+{"id":"an_c92dc18b6444","report":{"schema":"teardown.report/v1", … "findings":[{"id":"imports.process-injection","title":"Imports cover the full process-injection chain (allocate, write, execute)","severity":"high","category":"imports","confidence":"medium","evidence":["allocate or map memory in another process: KERNEL32.dll!VirtualAllocEx", … ,"code: 4 call sites in .text (see the code blocks)"],"code":[{"kind":"disasm","title":"call to KERNEL32.dll!VirtualAllocEx in .text","section":".text","offset":1213,"address":"0x1400010bd","arch":"x86-64","lines":[{"address":"0x1400010bd","offset":1213,"bytes":"41 b8 a4 01 00 00","text":"mov r8d, 0x1a4"},{"address":"0x1400010c3","offset":1219,"bytes":"ff 15 ef 10 00 00","text":"call qword ptr [rip+0x10ef]","note":"KERNEL32.dll!OpenProcess"}, … ],"limitations":[ … ]}, … ],"limitations":[ … ]}, … ]}}
+```
+
+The server deletes an upload as soon as its analysis ends, so the API cannot read more of a file than the
+report already holds. To follow a finding further, use the `teardown hexdump`, `disasm` and `xrefs` commands on
+the file or the `read_bytes`, `disassemble` and `find_calls` [MCP tools](../mcp.md). The OpenAPI document
+describes the field (`Finding.code`, with the schemas `CodeBlock`, `CodeLine` and `CodeAddress`).
+
 ## `GET /api/analyses/{id}/strings`
 
 Filters and pages `strings.items` of a stored report. Secret values are already

@@ -6,8 +6,62 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Code evidence: a finding can show the code behind it. `findings[].code` is a new optional list of blocks
+  (kind `disasm`, `hex` or `source`; lines with address, file offset, bytes, text, note and a flagged line;
+  `truncated`; `limitations`, never empty). The schema stays `teardown.report/v1`: the key is omitted when a
+  finding has no code, so documents without it are unchanged. Blocks are bounded (12 per finding, 64 lines each,
+  200 characters per line) and every renderer applies the caps again. See `docs/code-evidence.md`.
+- An x86 and x86-64 decoder (`internal/disasm`), Intel syntax, written for this project with no third-party
+  code: legacy prefixes, REX, ModRM and SIB (RIP-relative and absolute operands), the one-byte and two-byte opcode
+  maps, x87, SSE to SSE4.2, AES-NI, SHA and BMI, and the correct length of VEX and EVEX encodings. Bytes it does
+  not understand become `db 0xNN`. It never panics, never reads past its input and has a fuzz target.
+- Two developer tests check the decoder against the Go toolchain (`TestOracle`, `TestOracleAsm`; they run only
+  when `TEARDOWN_DISASM_ORACLE=1`, see the headers of `internal/disasm/oracle_test.go` and
+  `oracle_asm_test.go`). Against `go tool objdump` over `cmd/gofmt` and `cmd/go` built for Windows on amd64 and
+  386 they compare 4,318,469 instructions, agree on the length of all of them and fall back to `db` for none.
+  The instructions that the Go toolchain itself cannot decode (AVX-512, for example), and those that follow them
+  in the same function, are left out of that figure: 18,994 in the two amd64 programs. Against the encoding tests
+  of the Go assembler the length agreement is 99.9914% for `amd64enc.s` (the one miss is `ud1`) and 100% for the
+  other files.
+- Call sites of imports for PE images, x86-64 and 32-bit (`internal/xref`): a bounded sweep of the executable
+  sections finds the calls through the import address table, through import thunks and jumps through the slots,
+  with the instructions around each. The import findings (process injection, keylogging, anti-debug, crypto,
+  networking, download-and-execute, service manipulation, token privileges and the minimal import table) attach
+  them: up to 6 call sites per function and 12 blocks per finding, with an evidence line that counts them and a
+  limitation that names the functions that have none. ELF and Mach-O call sites are not implemented; 32-bit PE
+  images are tested only with a hand-made image.
+- Hex windows behind the findings made from strings (`secrets.*`, `indicators.network`,
+  `indicators.suspicious-commands`, `indicators.persistence-registry`), with every byte of a credential masked
+  (`2a` in the hex column, `*` in the ASCII column), and source lines with line numbers and three lines of
+  context for the strings that sit in text entries of ASAR archives, stored ZIP entries and text files, and for
+  `application.electron-risky-settings`. Deflated ZIP entries are not scanned, so they give no source lines.
+- `teardown hexdump`, `teardown disasm` and `teardown xrefs`: a hex and ASCII window at a file offset, the
+  instructions at an address, an offset or the entry point (PE, ELF, Mach-O and raw bytes), and the call sites of
+  one import or the list of called imports. Each has `--json`; they are bounded (4096 bytes, 256 instructions,
+  100 call sites) and exit 2 on bad flags and 1 on a request the file cannot serve.
+- `analyze` prints the first 3 code blocks of each finding, 24 lines each; `--code-all` prints them all and
+  `--no-code` leaves the code out of every output (terminal, JSON, Markdown, SARIF, HTML).
+- MCP tools `read_bytes`, `disassemble` and `find_calls` (the server now offers eight), with the same roots,
+  size limits and output trimming as the others. `analyze_file` keeps its summary small by trimming the code to
+  the first 3 blocks of each finding and the 24 lines around the flagged one.
+- A Code panel inside each finding of the dashboard and of the single-file HTML report: monospace tables with
+  address, bytes, instruction and note columns, the flagged line marked, a Copy button, a notice for a block
+  shown in part, the limitations once per finding, and the same panel in the light and dark themes. The Markdown
+  report shows each block as a fenced listing and SARIF carries the flagged line of the first five blocks of each
+  finding.
+- OpenAPI: the `Finding.code` field with the `CodeBlock`, `CodeLine` and `CodeAddress` schemas.
+- `go run ./examples/gensamples -dropper` writes `dropper.bin`, a harmless PE whose imports cover the
+  process-injection chain and whose code calls them the way compilers do, for trying all of the above. It is
+  generated on demand and not committed, because antivirus products may flag a file that imports those functions.
+
 ### Changed
 
+- Import findings of PE images gain an evidence line (`code: 4 call sites in .text (see the code blocks)`) and,
+  when the functions that triggered them are never called, a limitation that says so.
+- The documentation no longer says that teardown cannot disassemble: it has a small decoder for code evidence,
+  and still no decompiler, emulator or unpacker.
 - The dashboard and the single-file HTML report moved to Aurora 2.0, the bundled UI kit: a navigation
   rail, a top bar with breadcrumbs, search and the live indicator, a sub bar with tab pills, flat cards
   on one ground and a status bar, in the Prism Classic palette (Prism Daylight in the light theme).
@@ -17,12 +71,16 @@ All notable changes to this project are documented here. The format follows
 - Report page: the sections stack at full width, the section links became tab pills in the sub bar
   (with their counts, following the scroll) and the risk, size and type sit in pills at its right.
   In the exported file the pills are `#fragment` links, so they work from disk.
-- The exported report grows to about 240 KB, because the page now carries the whole layout kit.
+- The exported report grows to about 260 KB, because the page now carries the whole layout kit and the Code panel.
 - Output files named with `-o`, `--json`, `--md` or `--html` are created readable by their owner only
   (mode 0600): a report quotes what was found in the analysed file.
 
 ### Fixed
 
+- Strings: the base64 body lines of a private key written over several lines (a PEM block) were listed as
+  plain strings in `strings.items`, in the JSON and the HTML report, next to the redacted header. The scanner now
+  follows the key from its header, in ASCII and in UTF-16LE, and drops its body lines (up to 256 lines, until
+  the END marker or the first line that is not base64).
 - MCP: a path that named a place inside a root by another name was refused as outside the roots: through
   a symbolic link above it (`/var` against `/private/var` on macOS) or, on Windows, through an 8.3 short
   name (`RUNNER~1` against `runneradmin`) or another letter case. Such paths are now matched in their

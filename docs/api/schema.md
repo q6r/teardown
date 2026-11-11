@@ -116,10 +116,74 @@ Identifiers: `aslr`, `high-entropy-va`, `dep`, `cfg`, `seh`, `force-integrity` (
 | `category` | `packing`, `structure`, `hardening`, `imports`, `secrets`, `archive`, `signature`, `privacy`, `build`, `indicators`, `application`, `parser` or `file` |
 | `confidence` | How sure the engine is that the evidence supports the title: `low`, `medium`, `high` |
 | `evidence` | What was seen, one string per observation |
+| `code` | The code behind the finding, as a list of blocks (see [`findings[].code`](#findingscode)); omitted when there is none |
 | `limitations` | How the finding can be wrong or incomplete; never empty |
 
 Findings are sorted by severity, highest first. The full catalogue is in [rules.md](../rules.md).
 Use `id` and `severity` to gate CI (`teardown analyze --fail-on high`).
+
+### `findings[].code`
+
+`code` is optional: a finding that has no code blocks has no `code` key at all, so a document
+without code is byte for byte what earlier releases wrote and the schema stays `teardown.report/v1`.
+Each element is one block, a window of code that backs the finding: the instructions around a call
+site, the bytes around a string, or the source lines of a script.
+
+| Key | Meaning |
+|---|---|
+| `kind` | `disasm` (instructions), `hex` (a hex and ASCII window) or `source` (script lines). A reader that meets another value shows the lines as plain text |
+| `title` | What the block shows, for example `Call site of KERNEL32.dll!VirtualAllocEx` (omitted when empty) |
+| `file` | Path of the script inside a container such as a ZIP or an ASAR archive (omitted when empty) |
+| `section` | Name of the section of a binary the block lies in (omitted when empty) |
+| `offset` | File offset of the first line |
+| `address` | Virtual address of the first line, `"0x140001042"` (omitted when there is none) |
+| `arch` | Instruction set of a disassembly: `x86-64` or `x86` (omitted when empty) |
+| `lines` | The lines, in file order (never empty, never `null`) |
+| `truncated` | `true` when the block was cut and the code goes on beyond its last line (omitted when `false`) |
+| `limitations` | What the block cannot show; never empty |
+
+Each line has these keys:
+
+| Key | Meaning |
+|---|---|
+| `address` | Virtual address of the line, `"0x140001042"` (omitted when there is none) |
+| `offset` | File offset of the line |
+| `bytes` | The encoded bytes as lower-case hex pairs separated by single spaces, `"ff 15 b7 1f 00 00"`, at most 16 (omitted when empty) |
+| `text` | The instruction (`disasm`), the printable ASCII of the row (`hex`) or the source line (`source`) |
+| `note` | What the line refers to, for example `KERNEL32.dll!VirtualAllocEx` (omitted when empty) |
+| `highlight` | `true` on the line the finding is about, usually the call (omitted when `false`) |
+| `line` | 1-based line number of a source line (omitted for other kinds) |
+
+Addresses are strings, never numbers, because a JavaScript number cannot hold every 64-bit value:
+`0x` followed by 1 to 16 hexadecimal digits. In Go the type is `report.Addr`, which writes and reads
+exactly that form and rejects anything else.
+
+A producer keeps to these caps, and every renderer applies them again to what it is given, so a
+document from elsewhere cannot make an output grow without bound:
+
+| Cap | Value |
+|---|---|
+| Blocks per finding | 12 |
+| Lines per block | 64 (a longer block keeps the window around its first highlighted line and is marked `truncated`) |
+| Characters in the `text` or `note` of a line, and in a `title`, `file`, `section` or `arch` | 200 |
+| Limitations per block, and characters in one | 8 and 400 |
+
+`text`, `note` and the labels hold no control characters (a producer expands tabs to spaces) and are
+valid UTF-8. They still come from the analysed file, so they are untrusted: show them as text, never as markup.
+`report.CodeBlock.Validate` and `report.Finding.ValidateCode` check all of this; `Clipped` and `ClippedCode`
+reduce a block or a finding to the caps without failing; `report.Report.WithoutCode` returns a copy with no code.
+
+Which findings carry blocks, and of which kind, is described in [code evidence](../code-evidence.md): call sites
+of imports in PE images (`disasm`), hex windows around strings (`hex`), and the source lines of scripts in ASAR
+archives and stored ZIP entries (`source`). Secrets are masked in the blocks: in a hex window every byte of a
+credential-like value is `2a` in `bytes` and `*` in `text`, and in source lines the value is redacted like any
+other string and the lines of a private key body are replaced by a note.
+
+What a block does and does not claim: it shows code, it does not call it malicious, and it changes no
+severity or score. Every block lists its own limits. For disassembly they say, for example, that only the
+x86 family is decoded, that a linear sweep can read data as instructions and can lose its place, that
+nothing here is a decompilation, and that nothing was executed. Packed or protected files hide their real
+code, and functions that a program resolves at run time do not appear in the import table.
 
 ## `risk`
 
