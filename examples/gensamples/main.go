@@ -59,13 +59,13 @@ func main() {
 		samples = append(samples, sample{"dropper.bin", testfixtures.SamplePE()})
 	}
 
-	if err := os.MkdirAll(*out, 0o755); err != nil {
+	if err := os.MkdirAll(*out, 0o750); err != nil {
 		fmt.Fprintln(os.Stderr, "gensamples:", err)
 		os.Exit(1)
 	}
 	for _, s := range samples {
 		path := filepath.Join(*out, s.name)
-		if err := os.WriteFile(path, s.data, 0o644); err != nil {
+		if err := os.WriteFile(path, s.data, 0o600); err != nil {
 			fmt.Fprintln(os.Stderr, "gensamples:", err)
 			os.Exit(1)
 		}

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -60,8 +61,8 @@ func (s *Server) outer(next http.Handler) http.Handler {
 		start := time.Now()
 		defer func() {
 			if rec := recover(); rec != nil {
-				if rec == http.ErrAbortHandler {
-					panic(rec)
+				if err, ok := rec.(error); ok && errors.Is(err, http.ErrAbortHandler) {
+					panic(rec) // net/http's own way to abort a response: not a bug, and not ours to log
 				}
 				s.log.Error("handler panic",
 					"method", r.Method, "path", r.URL.Path,

@@ -29,7 +29,7 @@ func TestRealGoBinaries(t *testing.T) {
 	}{{"amd64", "x86-64"}, {"arm64", "AArch64"}} {
 		t.Run(tg.goarch, func(t *testing.T) {
 			path, err := testfixtures.GoBuildInfoCompile(ctx, t.TempDir(), "linux", tg.goarch)
-			if errors.Is(err, testfixtures.GoBuildInfoErrNoGo) {
+			if errors.Is(err, testfixtures.ErrNoGoCommand) {
 				t.Skip(err)
 			}
 			if err != nil {

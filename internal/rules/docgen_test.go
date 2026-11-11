@@ -36,10 +36,10 @@ func markdown() string {
 	sb.WriteString("## Risk score\n\n")
 	sb.WriteString("The score is deterministic and explained line by line in `risk.basis`:\n\n")
 	sb.WriteString("1. Every finding earns `severity points x confidence factor`, rounded: ")
-	sb.WriteString(fmt.Sprintf("info %d, low %d, medium %d, high %d, critical %d points; confidence low x%.1f, medium x%.1f, high x%.1f.\n",
+	fmt.Fprintf(&sb, "info %d, low %d, medium %d, high %d, critical %d points; confidence low x%.1f, medium x%.1f, high x%.1f.\n",
 		severityPoints[report.SeverityInfo], severityPoints[report.SeverityLow], severityPoints[report.SeverityMedium],
 		severityPoints[report.SeverityHigh], severityPoints[report.SeverityCritical],
-		confidenceFactor[report.ConfidenceLow], confidenceFactor[report.ConfidenceMedium], confidenceFactor[report.ConfidenceHigh]))
+		confidenceFactor[report.ConfidenceLow], confidenceFactor[report.ConfidenceMedium], confidenceFactor[report.ConfidenceHigh])
 	sb.WriteString("2. The points of one category are capped so a pile of weak signals in one area cannot outweigh independent evidence elsewhere: ")
 	caps := make([]string, 0, len(categoryCap))
 	for _, c := range categoryOrder {
@@ -48,17 +48,17 @@ func markdown() string {
 		}
 	}
 	sb.WriteString(strings.Join(caps, ", "))
-	sb.WriteString(fmt.Sprintf(" (other categories %d).\n", defaultCategoryCap))
-	sb.WriteString(fmt.Sprintf("3. The capped category totals are summed and limited to %d.\n", maxScore))
-	sb.WriteString(fmt.Sprintf("4. Label: low below %d, medium below %d, high below %d, critical from %d.\n\n", mediumFrom, highFrom, criticalFrom, criticalFrom))
+	fmt.Fprintf(&sb, " (other categories %d).\n", defaultCategoryCap)
+	fmt.Fprintf(&sb, "3. The capped category totals are summed and limited to %d.\n", maxScore)
+	fmt.Fprintf(&sb, "4. Label: low below %d, medium below %d, high below %d, critical from %d.\n\n", mediumFrom, highFrom, criticalFrom, criticalFrom)
 	sb.WriteString("The score orders a review queue; it says nothing about intent.\n\n")
 
 	sb.WriteString("## Thresholds\n\n")
-	sb.WriteString(fmt.Sprintf("- High-entropy section: entropy >= %.1f bits per byte on at least %d raw bytes (executable sections raise severity and confidence).\n", HighEntropySection, minEntropyBytes))
-	sb.WriteString(fmt.Sprintf("- High-entropy file without parsed sections: overall entropy >= %.1f.\n", HighEntropyFile))
-	sb.WriteString(fmt.Sprintf("- Zip bomb: declared total >= %s with ratio >= %.0f:1, or a per-entry ratio >= %.0f:1 with at least %s declared, or any overlapping entries.\n",
-		humanBytes(bombTotalBytes), bombTotalRatio, bombEntryRatio, humanBytes(bombEntryBytes)))
-	sb.WriteString(fmt.Sprintf("- PE overlay: at least %s.\n\n", humanBytes(overlayMinBytes)))
+	fmt.Fprintf(&sb, "- High-entropy section: entropy >= %.1f bits per byte on at least %d raw bytes (executable sections raise severity and confidence).\n", HighEntropySection, minEntropyBytes)
+	fmt.Fprintf(&sb, "- High-entropy file without parsed sections: overall entropy >= %.1f.\n", HighEntropyFile)
+	fmt.Fprintf(&sb, "- Zip bomb: declared total >= %s with ratio >= %.0f:1, or a per-entry ratio >= %.0f:1 with at least %s declared, or any overlapping entries.\n",
+		humanBytes(bombTotalBytes), bombTotalRatio, bombEntryRatio, humanBytes(bombEntryBytes))
+	fmt.Fprintf(&sb, "- PE overlay: at least %s.\n\n", humanBytes(overlayMinBytes))
 
 	byCategory := map[string][]Info{}
 	for _, info := range Catalog() {
@@ -76,7 +76,7 @@ func markdown() string {
 			for i := range ids {
 				ids[i] = "`" + ids[i] + "`"
 			}
-			sb.WriteString(fmt.Sprintf("| %s | %s | %s |\n", strings.Join(ids, "<br>"), info.Severity, info.Summary))
+			fmt.Fprintf(&sb, "| %s | %s | %s |\n", strings.Join(ids, "<br>"), info.Severity, info.Summary)
 		}
 		sb.WriteString("\n")
 	}

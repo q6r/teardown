@@ -191,7 +191,7 @@ Environment:
 Every conclusion ships with evidence and stated limitations; the risk score is a
 triage aid, not a verdict. See https://github.com/q6r/teardown for the documentation.
 `)
-	io.WriteString(w, sb.String())
+	_, _ = io.WriteString(w, sb.String()) // the help goes to the terminal: a failed write has nobody to tell
 }
 
 func printCommandHelp(w io.Writer, c command, fs *flagSet) {
@@ -200,7 +200,7 @@ func printCommandHelp(w io.Writer, c command, fs *flagSet) {
 	if c.long != "" {
 		sb.WriteString(strings.TrimSpace(c.long) + "\n\n")
 	}
-	io.WriteString(w, sb.String())
+	_, _ = io.WriteString(w, sb.String()) // as in printHelp
 	fs.Help(w)
 	if len(c.examples) > 0 {
 		fmt.Fprintln(w, "\nExamples:")

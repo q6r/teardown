@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -122,18 +123,21 @@ func connectSSE(t *testing.T, ts *httptest.Server) *sseClient {
 		t.Fatal(err)
 	}
 	c := &sseClient{resp: resp, lines: make(chan string, 256), cancel: cancel}
-	go func() {
-		defer close(c.lines)
-		sc := bufio.NewScanner(resp.Body)
-		for sc.Scan() {
-			c.lines <- sc.Text()
-		}
-	}()
+	go c.pump(resp.Body)
 	t.Cleanup(func() {
 		cancel()
 		resp.Body.Close()
 	})
 	return c
+}
+
+// pump delivers the lines of the stream to c.lines until the body ends.
+func (c *sseClient) pump(body io.Reader) {
+	defer close(c.lines)
+	sc := bufio.NewScanner(body)
+	for sc.Scan() {
+		c.lines <- sc.Text()
+	}
 }
 
 // frame reads one blank-line-terminated frame and returns its lines.

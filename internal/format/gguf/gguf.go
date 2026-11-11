@@ -171,7 +171,7 @@ func Parse(ctx context.Context, r io.ReaderAt, size int64, lim limits.Limits) (*
 	d.KVCount = rd.count()
 	if rd.err != nil {
 		p.note("file ends inside the header counts")
-		return p.res, nil
+		return p.res, nil //nolint:nilerr // a header cut short is reported as a note on the partial result, not as a failure
 	}
 	p.readMetadata()
 	if rd.err == nil {
@@ -228,7 +228,7 @@ func (p *parser) readMetadata() {
 		if !rd.tick() {
 			return
 		}
-		key, _ := rd.str()
+		key := rd.str()
 		typ := rd.u32()
 		if rd.err != nil {
 			return
@@ -309,7 +309,7 @@ func (p *parser) readTensors() {
 		if !rd.tick() {
 			return
 		}
-		name, _ := rd.str()
+		name := rd.str()
 		nd := rd.u32()
 		if rd.err != nil {
 			return
@@ -557,22 +557,22 @@ func (r *reader) skip(n uint64) {
 	}
 }
 
-// str reads a length-prefixed string, keeping at most maxKeptString bytes. The
-// returned flag tells whether the string was longer.
-func (r *reader) str() (string, bool) {
+// str reads a length-prefixed string, keeping at most maxKeptString bytes; a
+// longer string ends in an ellipsis.
+func (r *reader) str() string {
 	n := r.count()
 	if r.err != nil {
-		return "", false
+		return ""
 	}
 	if n > r.remaining() {
 		r.fail(binio.ErrTruncated)
-		return "", false
+		return ""
 	}
 	keep := min(n, maxKeptString)
 	buf := make([]byte, keep)
 	if _, err := io.ReadFull(r.br, buf); err != nil {
 		r.fail(binio.ErrTruncated)
-		return "", false
+		return ""
 	}
 	r.pos += int64(keep)
 	r.skip(n - keep)
@@ -580,7 +580,7 @@ func (r *reader) str() (string, bool) {
 	if n > keep {
 		s += "…"
 	}
-	return s, n > keep
+	return s
 }
 
 // value reads one metadata value. Scalars and strings are returned as uint64,
@@ -608,8 +608,7 @@ func (r *reader) value(typ uint32, depth int) any {
 	case tBool:
 		return r.u8() != 0
 	case tString:
-		s, _ := r.str()
-		return s
+		return r.str()
 	case tUint64:
 		return r.u64()
 	case tInt64:

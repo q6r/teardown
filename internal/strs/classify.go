@@ -96,16 +96,17 @@ func buildFeatureTable() (t [256]uint32) {
 		if !isHex {
 			f |= fNotHex
 		}
-		if !(isDigit || isUpper || isLower || c == '+' || c == '/' || c == '=' || c == '_' || c == '-') {
+		alnum := isDigit || isUpper || isLower
+		if !alnum && c != '+' && c != '/' && c != '=' && c != '_' && c != '-' {
 			f |= fNotB64
 		}
-		if !(isDigit || isUpper || isLower || c == '_') {
+		if !alnum && c != '_' {
 			f |= fNotIdent
 		}
-		if !(isDigit || isUpper || isLower || c == '.' || c == '-') {
+		if !alnum && c != '.' && c != '-' {
 			f |= fNotDomain
 		}
-		if !(isDigit || isUpper || isLower || c == '_' || c == '+' || c == '-') {
+		if !alnum && c != '_' && c != '+' && c != '-' {
 			f |= fNotAPI
 		}
 		t[i] = f

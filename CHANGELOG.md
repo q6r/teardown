@@ -18,6 +18,22 @@ All notable changes to this project are documented here. The format follows
   (with their counts, following the scroll) and the risk, size and type sit in pills at its right.
   In the exported file the pills are `#fragment` links, so they work from disk.
 - The exported report grows to about 240 KB, because the page now carries the whole layout kit.
+- Output files named with `-o`, `--json`, `--md` or `--html` are created readable by their owner only
+  (mode 0600): a report quotes what was found in the analysed file.
+
+### Fixed
+
+- MCP: a path that named a place inside a root by another name was refused as outside the roots: through
+  a symbolic link above it (`/var` against `/private/var` on macOS) or, on Windows, through an 8.3 short
+  name (`RUNNER~1` against `runneradmin`) or another letter case. Such paths are now matched in their
+  resolved form. Containment is unchanged (the read still goes through `os.Root`), and a path on a
+  Windows volume that no root is on, such as a `\\host\share` path, is refused without being looked up.
+- Server: stopping it while a browser held a spare connection that never sent a request waited more than
+  five seconds, because `net/http` counts such a connection as busy until it is that old. These
+  connections are now closed when the shutdown starts; requests in flight still get the grace period.
+- Server: an uploaded file name cut to 255 bytes could be left as nothing but dots and spaces and was
+  replaced by `upload.bin` only when it was sanitized a second time. The fallback now applies at once, so
+  sanitizing a name twice gives the same result as once.
 
 ## [0.1.0] - 2026-11-10
 

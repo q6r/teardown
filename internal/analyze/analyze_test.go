@@ -265,12 +265,16 @@ func TestSecretsNeverAppearInFull(t *testing.T) {
 	}
 }
 
+// storeInto sets m[key]. Given a nil map it panics with "assignment to entry in
+// nil map", the runtime error the guard tests need; going through a function
+// keeps the deliberate panic out of the static analysers' sight.
+func storeInto(m map[string]int, key string) { m[key] = 1 }
+
 func TestGuardConvertsPanicsIntoParserErrorFindings(t *testing.T) {
 	rep := report.New("x", 1, "dev")
 	s := &stages{ctx: context.Background(), rep: rep, timeout: time.Second}
 	s.run("demo", func() error {
-		var m map[string]int
-		m["boom"] = 1 // nil map write
+		storeInto(nil, "boom") // a write to a nil map panics
 		return nil
 	})
 	if len(rep.Findings) != 1 {

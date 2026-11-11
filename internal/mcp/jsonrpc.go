@@ -251,10 +251,3 @@ func (lw *lineWriter) send(v any) error {
 	}
 	return nil
 }
-
-// failed returns the first write error.
-func (lw *lineWriter) failed() error {
-	lw.mu.Lock()
-	defer lw.mu.Unlock()
-	return lw.err
-}

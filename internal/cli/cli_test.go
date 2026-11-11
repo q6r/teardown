@@ -618,7 +618,7 @@ func TestServeStartsAnsweringAndStopsOnCancel(t *testing.T) {
 	}
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if resp.StatusCode != 200 || !strings.Contains(string(body), `"status":"ok"`) {
+	if resp.StatusCode != http.StatusOK || !strings.Contains(string(body), `"status":"ok"`) {
 		t.Fatalf("health = %d %s", resp.StatusCode, body)
 	}
 	cancel()

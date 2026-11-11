@@ -11,9 +11,12 @@
 // Security model: files are readable only inside the configured root
 // directories. Every access goes through os.Root, so ".." escapes and symbolic
 // links or junctions that leave a root are refused by the operating-system
-// layer, and only regular files are opened. Files are analysed statically and
-// never executed. Result size is capped and every failure is returned as a tool
-// result with isError set rather than as a protocol error.
+// layer, and only regular files are opened. A path may name a place inside a
+// root by any name the operating system gives it (through a symbolic link above
+// it, or by an 8.3 short name on Windows): the directories above the file are
+// resolved like the roots are before the two are compared. Files are analysed
+// statically and never executed. Result size is capped and every failure is
+// returned as a tool result with isError set rather than as a protocol error.
 //
 // The server does not enforce the initialize handshake order: a request that
 // arrives before initialize is served using the newest protocol version.
@@ -214,11 +217,11 @@ func (s *server) handleEvent(ctx context.Context, ev lineEvent) {
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			s.reply(s.execute(ctx, it))
+			s.reply(s.execute(it))
 		}()
 		return
 	}
-	s.reply(s.execute(ctx, it))
+	s.reply(s.execute(it))
 }
 
 // handleBatch processes a JSON-RPC batch: calls run concurrently, everything
@@ -244,13 +247,13 @@ func (s *server) handleBatch(ctx context.Context, line []byte) {
 		var calls sync.WaitGroup
 		for i, it := range items {
 			if it.call == nil {
-				results[i] = s.execute(ctx, it)
+				results[i] = s.execute(it)
 				continue
 			}
 			calls.Add(1)
 			go func() {
 				defer calls.Done()
-				results[i] = s.execute(ctx, it)
+				results[i] = s.execute(it)
 			}()
 		}
 		calls.Wait()

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -14,11 +15,23 @@ import (
 	"github.com/q6r/teardown/internal/report"
 )
 
+// goRoot asks the go command where the Go tree is (runtime.GOROOT is the root
+// the test binary was built with, which means nothing on another machine) and
+// skips the test when there is no go command.
+func goRoot(t *testing.T) string {
+	t.Helper()
+	out, err := exec.Command("go", "env", "GOROOT").Output()
+	if err != nil {
+		t.Skipf("no go command to locate the Go tree: %v", err)
+	}
+	return strings.TrimSpace(string(out))
+}
+
 // TestDetectGoDistributionSamples checks Detect against real files that ship in
 // the Go source tree: compiler and linker output for many platforms plus archives
 // and images written by independent tools. Files that are not installed are skipped.
 func TestDetectGoDistributionSamples(t *testing.T) {
-	src := filepath.Join(runtime.GOROOT(), "src")
+	src := filepath.Join(goRoot(t), "src")
 	samples := []struct {
 		path   string
 		base64 bool

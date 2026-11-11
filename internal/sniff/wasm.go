@@ -21,11 +21,11 @@ func detectWasm(p *probe) (report.Type, bool) {
 		return newType(report.TypeWasm, report.FamilyExecutable, "WebAssembly binary (truncated header)", mime,
 			report.ConfidenceMedium), true
 	}
-	switch version := binary.LittleEndian.Uint32(h[4:]); {
-	case version == 1:
+	switch version := binary.LittleEndian.Uint32(h[4:]); version {
+	case 1:
 		return newType(report.TypeWasm, report.FamilyExecutable, "WebAssembly module (version 1)", mime,
 			report.ConfidenceHigh), true
-	case version == 0x0001000d:
+	case 0x0001000d:
 		// Component model preamble: version 0x0d, layer 1.
 		return newType(report.TypeWasm, report.FamilyExecutable, "WebAssembly component", mime,
 			report.ConfidenceHigh, "component"), true

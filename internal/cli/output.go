@@ -2,8 +2,10 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 
 	"github.com/q6r/teardown/internal/render"
@@ -32,8 +34,10 @@ func (d destination) close() error {
 	return nil
 }
 
-// openDestination returns stdout, or the file at path (created or truncated). It
-// refuses to overwrite any of the input files.
+// openDestination returns stdout, or the file at path (created or truncated). A
+// new file is readable by its owner only: a report quotes what was found in the
+// analysed file, and sharing it is the user's decision. It refuses to overwrite
+// any of the input files.
 func openDestination(env Env, path string, inputs ...string) (destination, error) {
 	if path == "" {
 		return destination{w: env.Stdout, isOut: true}, nil
@@ -41,7 +45,7 @@ func openDestination(env Env, path string, inputs ...string) (destination, error
 	if err := refuseOverwrite(path, inputs); err != nil {
 		return destination{}, err
 	}
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return destination{}, fmt.Errorf("cannot write %s: %w", path, err)
 	}
@@ -50,8 +54,11 @@ func openDestination(env Env, path string, inputs ...string) (destination, error
 
 func refuseOverwrite(out string, inputs []string) error {
 	outInfo, err := os.Stat(out)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil // nothing to overwrite yet
+	}
 	if err != nil {
-		return nil // does not exist yet
+		return fmt.Errorf("cannot write %s: %w", out, err)
 	}
 	for _, in := range inputs {
 		if inInfo, err := os.Stat(in); err == nil && os.SameFile(outInfo, inInfo) {

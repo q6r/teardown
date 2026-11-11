@@ -61,7 +61,8 @@ func (s *server) prepare(ctx context.Context, raw []byte) *prepared {
 }
 
 // execute handles a prepared message and returns the response to send, or nil.
-func (s *server) execute(ctx context.Context, it *prepared) (resp *response) {
+// A tools/call runs under the context registered for it by prepare.
+func (s *server) execute(it *prepared) (resp *response) {
 	if it.resp != nil {
 		return it.resp
 	}

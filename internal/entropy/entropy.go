@@ -157,7 +157,7 @@ func (p *Profile) flush() {
 	if len(p.windows) < MaxWindows {
 		p.windows = append(p.windows, Round(Shannon(&p.cur)))
 	}
-	for i, c := range p.cur {
+	for i, c := range &p.cur {
 		p.total[i] += c
 	}
 	p.cur = [256]uint64{}

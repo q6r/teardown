@@ -35,7 +35,7 @@ func (p *parser) parseExports() {
 	funcsRVA, namesRVA, ordsRVA := c.U32(), c.U32(), c.U32()
 
 	if nameRVA != 0 {
-		if s, ok := p.cstringRVA(nameRVA, maxNameLen); ok {
+		if s, ok := p.cstringRVA(nameRVA); ok {
 			p.det.ExportName = binio.Printable(s, displayNameLen)
 		}
 	}
@@ -53,7 +53,7 @@ func (p *parser) parseExports() {
 		if funcRVA < d.rva || uint64(funcRVA) >= uint64(d.rva)+uint64(d.size) {
 			return entry
 		}
-		target, ok := p.cstringRVA(funcRVA, maxNameLen)
+		target, ok := p.cstringRVA(funcRVA)
 		if !ok {
 			return entry
 		}
@@ -78,7 +78,7 @@ func (p *parser) parseExports() {
 			return true
 		}
 		named[idx/64] |= 1 << (idx % 64)
-		name, ok := p.cstringRVA(uint32(v), maxNameLen)
+		name, ok := p.cstringRVA(uint32(v))
 		if !ok {
 			badNames++
 			return true

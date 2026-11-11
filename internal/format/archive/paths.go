@@ -1,6 +1,9 @@
 package archive
 
-import "strings"
+import (
+	"bytes"
+	"strings"
+)
 
 // unsafePath reports whether extracting an entry with this raw name could write
 // outside the extraction root (the "zip-slip" class of bugs): a NUL byte, an
@@ -74,7 +77,7 @@ var containerMagics = [][]byte{
 // archive, installer or executable.
 func looksLikeContainer(b []byte) bool {
 	for _, m := range containerMagics {
-		if len(b) >= len(m) && string(b[:len(m)]) == string(m) {
+		if bytes.HasPrefix(b, m) {
 			return true
 		}
 	}

@@ -32,11 +32,20 @@ func listenLoopback(t *testing.T) net.Listener {
 	return ln
 }
 
-// httpGet fetches a URL with a short timeout.
+// newPlainClient returns a client with a transport of its own that keeps no
+// connection alive. The tests that watch how a server shuts down must know
+// exactly which connections exist: http.DefaultTransport is shared by every test
+// of the package, pools idle connections and may park a connection it dialed for
+// a request that was served another way, and the server sees such a connection
+// as one that never sent anything.
+func newPlainClient(timeout time.Duration) *http.Client {
+	return &http.Client{Timeout: timeout, Transport: &http.Transport{DisableKeepAlives: true}}
+}
+
+// httpGet fetches a URL with a short timeout, on a connection of its own.
 func httpGet(t *testing.T, url string) (*http.Response, error) {
 	t.Helper()
-	client := &http.Client{Timeout: 5 * time.Second}
-	return client.Get(url)
+	return newPlainClient(5 * time.Second).Get(url)
 }
 
 // waitServing polls the health endpoint until the server answers.
@@ -91,7 +100,8 @@ func TestServeLifecycle(t *testing.T) {
 	if entries, err := os.ReadDir(parent); err != nil || len(entries) != 0 {
 		t.Errorf("the private directory must be removed on shutdown: %v (%v)", entries, err)
 	}
-	if _, err := httpGet(t, base+"/api/health"); err == nil {
+	if resp, err := httpGet(t, base+"/api/health"); err == nil {
+		resp.Body.Close()
 		t.Error("the server still answers after shutdown")
 	}
 
@@ -152,7 +162,7 @@ func TestServeEndsEventStreamsPromptlyOnShutdown(t *testing.T) {
 	base := "http://" + ln.Addr().String()
 	waitServing(t, base)
 
-	resp, err := http.Get(base + "/api/events")
+	resp, err := newPlainClient(0).Get(base + "/api/events")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,6 +184,114 @@ func TestServeEndsEventStreamsPromptlyOnShutdown(t *testing.T) {
 	}
 	if elapsed := time.Since(start); elapsed > shutdownGrace/2 {
 		t.Errorf("shutdown took %s: open event streams must not eat the grace period", elapsed)
+	}
+}
+
+// acceptSignalListener tells a test when the server has taken a connection off
+// the listener, so the test does not shut down before the server knows of it.
+type acceptSignalListener struct {
+	net.Listener
+	accepted chan struct{}
+}
+
+func (l acceptSignalListener) Accept() (net.Conn, error) {
+	c, err := l.Listener.Accept()
+	if err == nil {
+		select {
+		case l.accepted <- struct{}{}:
+		default:
+		}
+	}
+	return c, err
+}
+
+// TestServeShutdownDoesNotWaitForConnectionsThatNeverSentARequest covers what
+// the first CI run on Windows showed as an event stream eating the grace period
+// (5.8 s): net/http's Shutdown waits more than five seconds for a connection
+// that was accepted but never sent a request. Browsers open such spare
+// connections on purpose, so quitting the server with the dashboard open would
+// hang for the same reason.
+func TestServeShutdownDoesNotWaitForConnectionsThatNeverSentARequest(t *testing.T) {
+	ln := acceptSignalListener{Listener: listenLoopback(t), accepted: make(chan struct{}, 4)}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		done <- Serve(ctx, ln, Config{TempDir: t.TempDir(), Stderr: io.Discard, Logger: testLogger()})
+	}()
+	waitServing(t, "http://"+ln.Addr().String())
+	for len(ln.accepted) > 0 { // the health check's connection
+		<-ln.accepted
+	}
+
+	spare, err := net.Dial("tcp", ln.Addr().String()) // connects, then says nothing
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer spare.Close()
+	select {
+	case <-ln.accepted:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the server never accepted the spare connection")
+	}
+
+	start := time.Now()
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Serve = %v", err)
+		}
+	case <-time.After(shutdownGrace + 5*time.Second):
+		t.Fatal("Serve hung")
+	}
+	if elapsed := time.Since(start); elapsed > shutdownGrace/4 {
+		t.Errorf("shutdown took %s: a connection that never sent a request must not eat the grace period", elapsed)
+	}
+
+	// The server hung up on it.
+	_ = spare.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if n, err := spare.Read(make([]byte, 1)); n != 0 || err == nil {
+		t.Errorf("the spare connection was left open (read %d bytes, err %v)", n, err)
+	}
+}
+
+func TestSpareConnsCloseOnlyConnectionsThatSentNothing(t *testing.T) {
+	sc := newSpareConns()
+	pair := func() (server, client net.Conn) {
+		a, b := net.Pipe()
+		t.Cleanup(func() { a.Close(); b.Close() })
+		return a, b
+	}
+	quiet, quietPeer := pair()
+	busy, busyPeer := pair()
+	gone, gonePeer := pair()
+	sc.track(quiet, http.StateNew)
+	sc.track(busy, http.StateNew)
+	sc.track(gone, http.StateNew)
+	sc.track(busy, http.StateActive) // it sent a request: the grace period is for it
+	sc.track(gone, http.StateClosed) // closed by its client: nothing left to close
+
+	sc.closeAll()
+
+	_ = quietPeer.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if _, err := quietPeer.Read(make([]byte, 1)); !errors.Is(err, io.EOF) {
+		t.Errorf("a connection that sent nothing must be closed, read err = %v", err)
+	}
+	_ = busyPeer.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
+	if _, err := busyPeer.Read(make([]byte, 1)); !errors.Is(err, os.ErrDeadlineExceeded) {
+		t.Errorf("a connection that sent a request must stay open, read err = %v", err)
+	}
+	_ = gonePeer.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
+	if _, err := gonePeer.Read(make([]byte, 1)); !errors.Is(err, os.ErrDeadlineExceeded) {
+		t.Errorf("a connection that is no longer tracked must be left alone, read err = %v", err)
+	}
+
+	late, latePeer := pair() // accepted after the shutdown began
+	sc.track(late, http.StateNew)
+	_ = latePeer.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if _, err := latePeer.Read(make([]byte, 1)); !errors.Is(err, io.EOF) {
+		t.Errorf("a connection accepted while shutting down must be closed, read err = %v", err)
 	}
 }
 

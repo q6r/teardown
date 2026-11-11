@@ -52,11 +52,22 @@ func (r *rootEntry) relative(clean string) (string, bool) {
 // rootSet is the set of directories the server may read from.
 type rootSet struct {
 	entries []*rootEntry
+	// resolve gives the physical location of a directory: symbolic links followed
+	// and, on Windows, 8.3 short names expanded and letter case fixed. The roots
+	// are stored in that form, and a requested path that is not inside a root as
+	// spelled is put into it too (see respell). It is filepath.EvalSymlinks;
+	// tests substitute their own to stand in for links they cannot create.
+	resolve func(string) (string, error)
 }
 
 // openRoots validates and opens the allowed directories. With no directories the
 // current working directory is used.
 func openRoots(dirs []string) (*rootSet, error) {
+	return openRootsResolving(dirs, filepath.EvalSymlinks)
+}
+
+// openRootsResolving is openRoots with the directory resolver spelled out.
+func openRootsResolving(dirs []string, resolve func(string) (string, error)) (*rootSet, error) {
 	if len(dirs) == 0 {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -64,7 +75,7 @@ func openRoots(dirs []string) (*rootSet, error) {
 		}
 		dirs = []string{wd}
 	}
-	rs := &rootSet{}
+	rs := &rootSet{resolve: resolve}
 	seen := map[string]bool{}
 	for _, d := range dirs {
 		given, err := filepath.Abs(d)
@@ -72,7 +83,7 @@ func openRoots(dirs []string) (*rootSet, error) {
 			rs.Close()
 			return nil, fmt.Errorf("mcp: root %q: %w", d, err)
 		}
-		abs, err := filepath.EvalSymlinks(given)
+		abs, err := resolve(given)
 		if err != nil {
 			rs.Close()
 			return nil, fmt.Errorf("mcp: root %q: %w", d, err)
@@ -248,8 +259,9 @@ func checkRawPath(p string) error {
 }
 
 // candidates maps the requested path to the roots it could live in: for an
-// absolute path, the roots that lexically contain it; for a relative path, every
-// root in order (the first root that has the file wins).
+// absolute path, the roots that contain it (as spelled, or else in its physical
+// spelling); for a relative path, every root in order (the first root that has
+// the file wins).
 func (rs *rootSet) candidates(p string) ([]candidate, error) {
 	native := filepath.FromSlash(p)
 	if runtime.GOOS == "windows" {
@@ -259,10 +271,10 @@ func (rs *rootSet) candidates(p string) ([]candidate, error) {
 	}
 	if filepath.IsAbs(native) {
 		clean := filepath.Clean(native)
-		var out []candidate
-		for _, e := range rs.entries {
-			if rel, ok := e.relative(clean); ok {
-				out = append(out, candidate{root: e, rel: rel})
+		out := rs.containing(clean)
+		if len(out) == 0 {
+			if alt := rs.respell(clean); alt != "" && alt != clean {
+				out = rs.containing(alt)
 			}
 		}
 		if len(out) == 0 {
@@ -289,6 +301,62 @@ func (rs *rootSet) candidates(p string) ([]candidate, error) {
 		out[i] = candidate{root: e, rel: rel}
 	}
 	return out, nil
+}
+
+// containing returns, in order, every root that lexically contains clean (an
+// absolute, cleaned path) together with clean's path relative to it.
+func (rs *rootSet) containing(clean string) []candidate {
+	var out []candidate
+	for _, e := range rs.entries {
+		if rel, ok := e.relative(clean); ok {
+			out = append(out, candidate{root: e, rel: rel})
+		}
+	}
+	return out
+}
+
+// respell returns clean (an absolute, cleaned path) spelled the way the roots
+// are stored, so that two names of one place compare equal. A place has several
+// names: on macOS the temporary directory is reached as /var/... and as
+// /private/var/..., any platform has symbolic links, and on Windows a directory
+// is also known by its 8.3 short name (RUNNER~1 for runneradmin) and in any
+// letter case. The roots are stored fully resolved, so the directory part of
+// the request is resolved with the same function.
+//
+// Only the directory part is resolved. The last element is left alone: if it is
+// a link, os.Root decides whether it may be followed. Resolution only chooses
+// which root to ask and which relative path to hand it; the read itself still
+// goes through os.Root, so a link swapped in meanwhile cannot lead out of a root.
+//
+// The result is empty when clean cannot be resolved to a place inside a root:
+// its directory does not exist, it is on a volume no root is on, or it names a
+// Windows device. The volume rule matters on Windows: resolving \\host\share\...
+// would make the machine connect to a host of the caller's choosing (and offer
+// it the user's credentials), which a path outside every root must never do.
+func (rs *rootSet) respell(clean string) string {
+	if !rs.onRootVolume(clean) {
+		return ""
+	}
+	if runtime.GOOS == "windows" && reservedWindowsComponent(strings.TrimPrefix(clean, filepath.VolumeName(clean))) != "" {
+		return ""
+	}
+	dir, err := rs.resolve(filepath.Dir(clean))
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(dir, filepath.Base(clean))
+}
+
+// onRootVolume reports whether p is on the same volume (Windows drive letter or
+// UNC share; there is only one volume elsewhere) as at least one root.
+func (rs *rootSet) onRootVolume(p string) bool {
+	volume := filepath.VolumeName(p)
+	for _, e := range rs.entries {
+		if strings.EqualFold(volume, filepath.VolumeName(e.abs)) {
+			return true
+		}
+	}
+	return false
 }
 
 // windowsPathProblem explains why a native Windows path is rejected before any

@@ -61,7 +61,7 @@ func contentErr(err error, e Entry) error {
 	case errors.Is(err, io.ErrUnexpectedEOF), errors.Is(err, io.EOF):
 		return fmt.Errorf("%w: entry %q ends early", binio.ErrTruncated, e.Name)
 	default:
-		return fmt.Errorf("%w: entry %q: %v", ErrCorrupt, e.Name, err)
+		return fmt.Errorf("%w: entry %q: %w", ErrCorrupt, e.Name, err)
 	}
 }
 

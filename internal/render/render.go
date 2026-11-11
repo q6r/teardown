@@ -54,7 +54,6 @@ func (p palette) dim(s string) string    { return p.wrap("2", s) }
 func (p palette) red(s string) string    { return p.wrap("31", s) }
 func (p palette) green(s string) string  { return p.wrap("32", s) }
 func (p palette) yellow(s string) string { return p.wrap("33", s) }
-func (p palette) blue(s string) string   { return p.wrap("34", s) }
 func (p palette) cyan(s string) string   { return p.wrap("36", s) }
 
 func (p palette) severity(s report.Severity, text string) string {

@@ -190,7 +190,6 @@ func TestOpenAPIReferencesResolve(t *testing.T) {
 						m, ok := cur.(map[string]any)
 						if !ok || m[part] == nil {
 							t.Errorf("$ref %q does not resolve (stopped at %q)", ref, part)
-							cur = nil
 							break
 						}
 						cur = m[part]

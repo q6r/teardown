@@ -94,7 +94,10 @@ func parseEnd(r io.ReaderAt, size, off int64, b []byte) (endRecord, bool) {
 	if rec.count == 0xFFFF || rec.cdSize == 0xFFFFFFFF || rec.cdOffset == 0xFFFFFFFF {
 		readEnd64(r, size, off, &rec)
 	}
-	return rec, rec.resolve(r, size)
+	// Resolve first: the order in which rec and the call are evaluated in a
+	// return statement is unspecified, and resolve fills in fields of rec.
+	resolved := rec.resolve(r, size)
+	return rec, resolved
 }
 
 // readEnd64 looks for the ZIP64 locator right before the end record and, when

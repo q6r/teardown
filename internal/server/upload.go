@@ -176,7 +176,7 @@ func (s *Server) receive(w http.ResponseWriter, r *http.Request, boundary string
 
 	mr := multipart.NewReader(body, boundary)
 	part, err := mr.NextPart()
-	if err == io.EOF {
+	if err == io.EOF { //nolint:errorlint // NextPart returns a bare io.EOF for a body without parts and a wrapped one for a truncated body: only the first means "no file"
 		return nil, &apiError{status: http.StatusBadRequest, code: codeMissingFile, message: `the multipart body is empty; send the file in a field named "file"`}
 	}
 	if err != nil {

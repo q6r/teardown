@@ -287,7 +287,8 @@ func TestScanTable(t *testing.T) {
 			}
 		}},
 		{"high compression ratio", testfixtures.ZipHighRatio(4 << 20), 10, func(t *testing.T, d *zipscan.Directory) {
-			if d.MaxRatio < 1000 || d.MaxRatioEntry != "zeros.bin" {
+			// Deflate tops out near 1030:1 on zeros and Go versions differ by a few percent, so 1000 is too tight.
+			if d.MaxRatio < 900 || d.MaxRatioEntry != "zeros.bin" {
 				t.Fatalf("ratio=%v entry=%q", d.MaxRatio, d.MaxRatioEntry)
 			}
 		}},

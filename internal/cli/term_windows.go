@@ -31,10 +31,14 @@ func PrepareConsole() (restore func()) {
 	if r, _, _ := procGetConsoleMode.Call(uintptr(h), uintptr(unsafe.Pointer(&mode))); r == 0 {
 		return restore // not a console (redirected)
 	}
-	procSetConsoleMode.Call(uintptr(h), uintptr(mode|enableVirtualTerminalProcessing))
+	// Best effort: a console that cannot process escape sequences (older than
+	// Windows 10) shows them as text, and --color never or NO_COLOR avoids that.
+	_, _, _ = procSetConsoleMode.Call(uintptr(h), uintptr(mode|enableVirtualTerminalProcessing))
 	if prev, _, _ := procGetOutputCP.Call(); prev != 0 && prev != cpUTF8 {
 		if r, _, _ := procSetOutputCP.Call(cpUTF8); r != 0 {
-			restore = func() { procSetOutputCP.Call(prev) }
+			restore = func() {
+				_, _, _ = procSetOutputCP.Call(prev) // on the way out: a failure leaves nothing to act on
+			}
 		}
 	}
 	return restore

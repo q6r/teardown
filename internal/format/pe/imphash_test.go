@@ -2,7 +2,7 @@ package pe
 
 import (
 	"bytes"
-	"crypto/md5" //nolint:gosec // the import hash is an MD5 by definition.
+	"crypto/md5"
 	"encoding/hex"
 	"slices"
 	"testing"
@@ -79,7 +79,7 @@ func TestImpHasherDigests(t *testing.T) {
 	h.addOrdinal("msvbvm60.dll", 100)
 	h.add("OLEAUT32.dll", "SysFreeString")
 	h.addOrdinal("oleaut32.dll", 500)
-	sum := md5.Sum(buf.Bytes()) //nolint:gosec // see imports.
+	sum := md5.Sum(buf.Bytes()) // the import hash is an MD5 by definition
 	// Digest computed independently with md5sum over the same text.
 	const want = "0bc444eb761f1aeff7bef90c61b643b1"
 	if got := hex.EncodeToString(sum[:]); got != want {

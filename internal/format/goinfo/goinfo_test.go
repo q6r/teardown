@@ -258,7 +258,7 @@ func TestRead_RealBinaries(t *testing.T) {
 		goos, goarch := tg[0], tg[1]
 		t.Run(goos+"-"+goarch, func(t *testing.T) {
 			path, err := testfixtures.GoBuildInfoCompile(ctx, t.TempDir(), goos, goarch)
-			if errors.Is(err, testfixtures.GoBuildInfoErrNoGo) {
+			if errors.Is(err, testfixtures.ErrNoGoCommand) {
 				t.Skip(err)
 			}
 			if err != nil {

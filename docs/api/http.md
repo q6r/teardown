@@ -311,7 +311,7 @@ Allow: POST
 | Event streams               | At most 64 open at once (then `503`); 32 queued events per client; keep-alive every 15 s |
 | Strings page                | `limit` 1-1000 (default 100), `q` at most 256 bytes                                     |
 | Display name                | At most 255 bytes                                                                       |
-| Shutdown                    | `Ctrl+C` stops accepting connections, ends event streams at once, gives running requests 10 s, and removes the private upload directory |
+| Shutdown                    | `Ctrl+C` stops accepting connections, closes those that have not sent a request yet (browsers keep spare ones) and ends event streams at once, gives running requests 10 s, and removes the private upload directory |
 
 Uploads live in a directory created at start-up inside the system temporary
 directory (`teardown-<random>`, mode 0700 on Unix), under random file names, and exist only while

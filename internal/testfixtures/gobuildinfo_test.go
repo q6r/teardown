@@ -102,7 +102,7 @@ func TestGoBuildInfo_CompileProducesARealBinary(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	path, err := GoBuildInfoCompile(ctx, t.TempDir(), "linux", "amd64")
-	if errors.Is(err, GoBuildInfoErrNoGo) {
+	if errors.Is(err, ErrNoGoCommand) {
 		t.Skip(err)
 	}
 	if err != nil {

@@ -55,7 +55,7 @@ const (
 
 // pycVersion maps a magic number to a Python release name.
 func pycVersion(magic int) (version string, known bool) {
-	for _, r := range pycReleases {
+	for _, r := range &pycReleases {
 		if magic >= r.lo && magic <= r.hi {
 			return r.version, true
 		}

@@ -138,7 +138,8 @@ func TestMachO_DylibsRPathsUUIDAndLoadCommands(t *testing.T) {
 		cmds := machoLoadCommands(f)
 		for _, c := range []uint32{machoLCUUID, machoLCBuildVersion, machoLCMain, machoLCRPath, machoLCLoadWeak, machoLCReexport, machoLCCodeSignature, machoLCEncryption, machoLCEncryption64} {
 			present := slices.Contains(cmds, c)
-			wantPresent := !(c == machoLCEncryption && bits == 64) && !(c == machoLCEncryption64 && bits == 32)
+			// A 64-bit file carries LC_ENCRYPTION_INFO_64 instead of LC_ENCRYPTION_INFO, a 32-bit file the reverse.
+			wantPresent := (c != machoLCEncryption || bits != 64) && (c != machoLCEncryption64 || bits != 32)
 			if present != wantPresent {
 				t.Errorf("bits %d: load command %#x present=%v, want %v (all: %#x)", bits, c, present, wantPresent, cmds)
 			}

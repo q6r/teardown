@@ -339,6 +339,136 @@ func TestOpenRoots(t *testing.T) {
 	})
 }
 
+// aliasResolver stands in for a file system where the directory alias is a
+// symbolic link to target (like /var -> /private/var on macOS), for environments
+// that may not create links. Everything else is resolved for real.
+func aliasResolver(alias, target string) func(string) (string, error) {
+	return func(p string) (string, error) {
+		if rel, err := filepath.Rel(alias, p); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			p = filepath.Join(target, rel)
+		}
+		return filepath.EvalSymlinks(p)
+	}
+}
+
+// TestOpenAcceptsAnotherSpellingOfTheSamePlace covers a request that names a
+// place inside a root through an alias the root was not configured with: the
+// macOS temporary directory is /var/... for some callers and /private/var/...
+// for others, and Windows knows directories by short names too. The place must
+// be accepted under either spelling, and nothing outside the root under any.
+func TestOpenAcceptsAnotherSpellingOfTheSamePlace(t *testing.T) {
+	fx := newConfinementFixture(t)
+	alias := filepath.Join(fx.base, "alias") // not on disk: the resolver makes it a link to base
+	rs, err := openRootsResolving([]string{fx.root}, aliasResolver(alias, fx.base))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(rs.Close)
+	via := func(parts ...string) string { return filepath.Join(append([]string{alias}, parts...)...) }
+
+	t.Run("places inside the root are found", func(t *testing.T) {
+		tests := []struct {
+			name, path string
+			want       []byte
+		}{
+			{"file", via("root", "ok.bin"), fx.okData},
+			{"nested", via("root", "sub", "deep.bin"), []byte("DEEP")},
+			{"harmless dot dot", via("root", "sub", "..", "ok.bin"), fx.okData},
+			{"empty file", via("root", "empty.bin"), nil},
+		}
+		for _, tc := range tests {
+			f, err := rs.open(tc.path)
+			if err != nil {
+				t.Errorf("%s: open(%q): %v", tc.name, tc.path, err)
+				continue
+			}
+			if got := readAll(t, f); !bytes.Equal(got, tc.want) {
+				t.Errorf("%s: content = %q, want %q", tc.name, got, tc.want)
+			}
+			f.Close()
+		}
+	})
+
+	t.Run("everything else stays refused", func(t *testing.T) {
+		tests := []struct{ name, path, wantMsg string }{
+			{"sibling with the root's name as prefix", via("root-evil", "secret.bin"), "outside the allowed roots"},
+			{"file next to the root", via("outside.bin"), "outside the allowed roots"},
+			{"climbing out of the root", via("root", "..", "outside.bin"), "outside the allowed roots"},
+			{"climbing into the sibling", via("root", "..", "root-evil", "secret.bin"), "outside the allowed roots"},
+			{"directory that does not exist", via("no-such-directory", "ok.bin"), "outside the allowed roots"},
+			{"the parent of the root", via(), "outside the allowed roots"},
+			{"the root itself", via("root"), "a directory"},
+			{"a directory inside the root", via("root", "sub"), "a directory"},
+			{"missing file", via("root", "nope.bin"), "not found"},
+		}
+		for _, tc := range tests {
+			f, err := rs.open(tc.path)
+			if err == nil {
+				got := readAll(t, f)
+				f.Close()
+				t.Errorf("%s: open(%q) succeeded and exposed %q", tc.name, tc.path, got)
+				continue
+			}
+			if !strings.Contains(err.Error(), tc.wantMsg) {
+				t.Errorf("%s: message %q does not mention %q", tc.name, err, tc.wantMsg)
+			}
+			if strings.Contains(err.Error(), string(fx.secret)) || strings.Contains(err.Error(), fx.evil) {
+				t.Errorf("%s: the message resolves or leaks the outside location: %q", tc.name, err)
+			}
+		}
+	})
+}
+
+// TestOpenAcceptsPathsThroughASymlinkedParent is the same with a real link: a
+// directory elsewhere that points at the root's parent. A link inside the root
+// that leaves it must still be refused when the path arrives through the alias.
+func TestOpenAcceptsPathsThroughASymlinkedParent(t *testing.T) {
+	fx := newConfinementFixture(t)
+	alias := filepath.Join(t.TempDir(), "alias")
+	if err := os.Symlink(fx.base, alias); err != nil {
+		t.Skipf("this environment cannot create symbolic links (%v)", err)
+	}
+	outsideLink := filepath.Join(fx.root, "link-out")
+	if err := os.Symlink(filepath.Join(fx.base, "outside.bin"), outsideLink); err != nil {
+		t.Skipf("this environment cannot create symbolic links (%v)", err)
+	}
+	if err := os.Symlink("ok.bin", filepath.Join(fx.root, "link-in")); err != nil {
+		t.Skipf("this environment cannot create symbolic links (%v)", err)
+	}
+	rs := openTestRoots(t, fx.root)
+
+	for _, p := range []string{
+		filepath.Join(alias, "root", "ok.bin"),
+		filepath.Join(alias, "root", "sub", "deep.bin"),
+		filepath.Join(alias, "root", "link-in"), // a link that stays inside is fine
+	} {
+		f, err := rs.open(p)
+		if err != nil {
+			t.Errorf("open(%q): %v", p, err)
+			continue
+		}
+		f.Close()
+	}
+
+	for _, tc := range []struct{ path, wantMsg string }{
+		{filepath.Join(alias, "root", "link-out"), "leaves the allowed roots"},
+		{filepath.Join(alias, "root-evil", "secret.bin"), "outside the allowed roots"},
+		{filepath.Join(alias, "outside.bin"), "outside the allowed roots"},
+		{filepath.Join(alias, "root", "..", "outside.bin"), "outside the allowed roots"},
+	} {
+		f, err := rs.open(tc.path)
+		if err == nil {
+			got := readAll(t, f)
+			f.Close()
+			t.Errorf("open(%q) succeeded and exposed %q", tc.path, got)
+			continue
+		}
+		if !strings.Contains(err.Error(), tc.wantMsg) {
+			t.Errorf("open(%q): message %q does not mention %q", tc.path, err, tc.wantMsg)
+		}
+	}
+}
+
 func TestReservedWindowsNames(t *testing.T) {
 	reserved := []string{"NUL", "nul", "Nul.txt", "nul ", "nul.", "nul . ", "NUL.tar.gz", "CON", "con", "PRN", "AUX", "aux.c",
 		"COM0", "COM1", "com9", "COM1.txt", "LPT1", "lpt9", "LPT5.log", "COM¹", "LPT²", "COM³", "CONIN$", "CONOUT$"}

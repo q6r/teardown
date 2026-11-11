@@ -72,14 +72,14 @@ func (p *parser) readRVAUpTo(rva uint32, n int) []byte {
 	return b
 }
 
-// cstringRVA reads a NUL-terminated string of at most limit bytes at rva. A
+// cstringRVA reads a NUL-terminated name of at most maxNameLen bytes at rva. A
 // string cut off by the end of the mapped data is returned as far as it goes.
-func (p *parser) cstringRVA(rva uint32, limit int) (string, bool) {
+func (p *parser) cstringRVA(rva uint32) (string, bool) {
 	off, avail, ok := p.maps.translate(rva)
 	if !ok {
 		return "", false
 	}
-	return cstringResult(binio.CString(p.r, p.size, off, int(min(int64(limit), avail))))
+	return cstringResult(binio.CString(p.r, p.size, off, int(min(maxNameLen, avail))))
 }
 
 // cstringResult accepts a string cut off by the end of the data but rejects a

@@ -106,9 +106,9 @@ var commandPrograms = buildCommandPrograms()
 
 func buildCommandPrograms() map[string]commandRule {
 	m := make(map[string]commandRule)
-	add := func(kind string, arg argRule, names ...string) {
+	addShell := func(arg argRule, names ...string) {
 		for _, n := range names {
-			m[n] = commandRule{kind, arg}
+			m[n] = commandRule{"shell", arg}
 		}
 	}
 	addExe := func(kind string, arg argRule, names ...string) {
@@ -119,7 +119,7 @@ func buildCommandPrograms() map[string]commandRule {
 	}
 	addExe("cmd", argSlash, "cmd")
 	addExe("powershell", argSwitch, "powershell", "pwsh")
-	add("shell", argDash, "sh", "bash", "zsh", "dash", "ksh", "csh", "fish", "/bin/sh", "/bin/bash")
+	addShell(argDash, "sh", "bash", "zsh", "dash", "ksh", "csh", "fish", "/bin/sh", "/bin/bash")
 	addExe("download", argDash, "curl", "wget")
 	addExe("lolbin", argSwitch, "certutil", "schtasks", "bitsadmin", "bcdedit", "msiexec", "cmstp", "taskkill")
 	addExe("lolbin", argDLL, "rundll32")
@@ -132,17 +132,17 @@ func buildCommandPrograms() map[string]commandRule {
 	addExe("lolbin", argOneOf("user", "localgroup", "use", "view", "share", "accounts", "group", "session", "start", "stop"), "net", "net1")
 	addExe("lolbin", argOneOf("add", "delete", "query", "export", "import", "save", "load", "copy"), "reg")
 	addExe("lolbin", argOneOf("create", "config", "start", "stop", "delete", "query", "description", "failure"), "sc")
-	add("shell", argOneOf("-rf", "-fr", "-r", "-f"), "rm")
-	add("shell", argOneOf("+x", "777", "755", "-r", "u+x", "a+x", "+s", "4755"), "chmod")
-	add("shell", argOneOf("-e", "-l", "-lvp", "-lvnp", "-c", "-nv"), "nc")
-	add("shell", argOneOf("-e", "-l", "-c", "--exec", "--sh-exec"), "ncat")
-	add("shell", argOneOf("-d", "--decode"), "base64")
-	add("shell", argOneOf("-c"), "python", "python3")
-	add("shell", argOneOf("-e"), "perl", "ruby")
-	add("shell", argOneOf("-r"), "php")
-	add("shell", argOneOf("-s", "-i", "-u", "-e", "-n", "-k", "su", "bash", "sh", "rm", "chmod", "chown", "apt",
+	addShell(argOneOf("-rf", "-fr", "-r", "-f"), "rm")
+	addShell(argOneOf("+x", "777", "755", "-r", "u+x", "a+x", "+s", "4755"), "chmod")
+	addShell(argOneOf("-e", "-l", "-lvp", "-lvnp", "-c", "-nv"), "nc")
+	addShell(argOneOf("-e", "-l", "-c", "--exec", "--sh-exec"), "ncat")
+	addShell(argOneOf("-d", "--decode"), "base64")
+	addShell(argOneOf("-c"), "python", "python3")
+	addShell(argOneOf("-e"), "perl", "ruby")
+	addShell(argOneOf("-r"), "php")
+	addShell(argOneOf("-s", "-i", "-u", "-e", "-n", "-k", "su", "bash", "sh", "rm", "chmod", "chown", "apt",
 		"apt-get", "yum", "systemctl", "service", "tee"), "sudo")
-	add("shell", argAny, "nohup")
+	addShell(argAny, "nohup")
 	return m
 }
 

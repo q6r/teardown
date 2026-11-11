@@ -27,7 +27,7 @@ func TestRealGoBinaries(t *testing.T) {
 	for _, tg := range []struct{ goarch, cpu string }{{"arm64", "arm64"}, {"amd64", "x86_64"}} {
 		t.Run(tg.goarch, func(t *testing.T) {
 			path, err := testfixtures.GoBuildInfoCompile(ctx, t.TempDir(), "darwin", tg.goarch)
-			if errors.Is(err, testfixtures.GoBuildInfoErrNoGo) {
+			if errors.Is(err, testfixtures.ErrNoGoCommand) {
 				t.Skip(err)
 			}
 			if err != nil {
@@ -109,7 +109,9 @@ func compareWithReference(t *testing.T, res *Result, ref *dmacho.File, wantCPU s
 			t.Errorf("section %s,%s size %d, reference %d", rs.Seg, rs.Name, got.VirtualSize, rs.Size)
 		}
 		zerofill := slices.Contains([]uint32{0x1, 0xc, 0x12}, rs.Flags&0xff)
-		if !zerofill && rs.Offset != 0 && got.Offset != uint64(rs.Offset) {
+		// An empty section has no data in the file, so the parser leaves its offset at 0 while debug/macho
+		// repeats the raw header value (the Go 1.24 linker emits an empty __gosymtab with a non-zero one).
+		if !zerofill && rs.Size != 0 && rs.Offset != 0 && got.Offset != uint64(rs.Offset) {
 			t.Errorf("section %s,%s offset %d, reference %d", rs.Seg, rs.Name, got.Offset, rs.Offset)
 		}
 	}

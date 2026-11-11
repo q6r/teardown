@@ -135,8 +135,8 @@ func ruleEntryPoint(in *input) []report.Finding {
 	sections := in.rep.Sections
 	var evidence []string
 	sev, conf := report.SeverityLow, report.ConfidenceLow
-	switch {
-	case pe.EntrySection == "":
+	switch pe.EntrySection {
+	case "":
 		evidence = append(evidence, fmt.Sprintf("entry point %s lies outside every section", pe.EntryPoint))
 		sev, conf = report.SeverityMedium, report.ConfidenceMedium
 	default:

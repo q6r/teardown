@@ -132,21 +132,21 @@ func GoBuildInfo(o GoBuildInfoOptions) []byte {
 	})
 }
 
-// GoBuildInfoErrNoGo is returned by [GoBuildInfoCompile] when no go command is on PATH.
-var GoBuildInfoErrNoGo = errors.New("go command not found on PATH")
+// ErrNoGoCommand is returned by [GoBuildInfoCompile] when no go command is on PATH.
+var ErrNoGoCommand = errors.New("go command not found on PATH")
 
 // GoBuildInfoCompile builds a minimal program (standard library only, cgo
 // disabled) for the given target with the local Go toolchain and returns the
 // path of the binary inside dir. It exists so parser tests can be checked
 // against genuine linker output; callers should skip when it fails with
-// [GoBuildInfoErrNoGo]. Extra arguments are passed to "go build".
+// [ErrNoGoCommand]. Extra arguments are passed to "go build".
 func GoBuildInfoCompile(ctx context.Context, dir, goos, goarch string, extra ...string) (string, error) {
 	goBin, err := exec.LookPath("go")
 	if err != nil {
-		return "", GoBuildInfoErrNoGo
+		return "", ErrNoGoCommand
 	}
 	src := filepath.Join(dir, "src")
-	if err := os.MkdirAll(src, 0o755); err != nil {
+	if err := os.MkdirAll(src, 0o750); err != nil {
 		return "", err
 	}
 	files := map[string]string{
@@ -154,7 +154,7 @@ func GoBuildInfoCompile(ctx context.Context, dir, goos, goarch string, extra ...
 		"main.go": "package main\n\nimport \"os\"\n\nfunc main() { os.Stdout.WriteString(\"hello\\n\") }\n",
 	}
 	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(src, name), []byte(content), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(src, name), []byte(content), 0o600); err != nil {
 			return "", err
 		}
 	}

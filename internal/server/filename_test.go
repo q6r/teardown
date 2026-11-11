@@ -1,6 +1,7 @@
 package server
 
 import (
+	"math/rand/v2"
 	"strings"
 	"testing"
 	"unicode"
@@ -79,6 +80,80 @@ func TestSanitizeName(t *testing.T) {
 			t.Errorf("a %d-byte name changed to %d bytes", maxNameBytes, len(got))
 		}
 	})
+}
+
+// TestSanitizeNameJudgesTheNameAfterTheCut covers a bug the fuzzer found: the
+// "only dots and spaces" check ran before a long name was cut, so ". . . 0." cut
+// down to ". . . .." was returned as is and replaced by the fallback only when
+// it was sanitized a second time.
+func TestSanitizeNameJudgesTheNameAfterTheCut(t *testing.T) {
+	t.Run("the minimised fuzzer input falls back at once", func(t *testing.T) {
+		in := strings.Repeat(". ", 127) + "0." // 256 bytes: one over the limit
+		got := sanitizeName(in)
+		if got != fallbackName {
+			t.Fatalf("sanitizeName(%q) = %q, want %q", in, got, fallbackName)
+		}
+		if again := sanitizeName(got); again != got {
+			t.Errorf("not idempotent: %q -> %q", got, again)
+		}
+	})
+	t.Run("one byte under the limit nothing is cut and the digit stays", func(t *testing.T) {
+		in := strings.Repeat(". ", 126) + "0." // 254 bytes
+		if got := sanitizeName(in); got != in {
+			t.Errorf("sanitizeName changed a name that fits: %q", got)
+		}
+	})
+	t.Run("a cut that keeps a real character keeps the name", func(t *testing.T) {
+		in := "a" + strings.Repeat(". ", 127) + "0."
+		got := sanitizeName(in)
+		if !strings.HasPrefix(got, "a. ") || len(got) != maxNameBytes {
+			t.Errorf("got %d bytes starting %q", len(got), got[:6])
+		}
+		checkSanitized(t, in, got)
+	})
+	t.Run("a long run of dots falls back", func(t *testing.T) {
+		in := strings.Repeat(".", 400)
+		if got := sanitizeName(in); got != fallbackName {
+			t.Errorf("sanitizeName(400 dots) = %d bytes, want %q", len(got), fallbackName)
+		}
+	})
+}
+
+// TestSanitizeNameIsIdempotentAroundTheCut builds names of about the cut length
+// from the pieces that interact with trimming, the drive-letter rule and the
+// extension rule, and checks every guarantee on them, idempotency included. The
+// generator is seeded, so a failure reproduces.
+func TestSanitizeNameIsIdempotentAroundTheCut(t *testing.T) {
+	// A head of dots and spaces is the shape that went wrong (the cut can leave
+	// nothing else); the tail mixes in everything that trimming, the drive-letter
+	// rule and the extension rule react to.
+	dotty := []string{".", " ", ". ", "..", " .", ". ."}
+	mixed := []string{
+		".", " ", ". ", "a", "0", "x y", "é", "🙂", ":", "C:", ".gz", ".tar.gz", "\t",
+		string(rune(0x200b)), string(rune(0xa0)), "\xff",
+	}
+	prefixes := []string{"", "", "C:", "C: ", "a:b:", "dir/", `D:\x\`, " ", ". "}
+	rng := rand.New(rand.NewPCG(20260711, 1))
+	for range 40000 {
+		var b strings.Builder
+		b.WriteString(prefixes[rng.IntN(len(prefixes))])
+		head := maxNameBytes - 16 + rng.IntN(40) // 239..278 bytes of the name come from the head
+		pool := dotty
+		if rng.IntN(4) == 0 {
+			pool = mixed
+		}
+		for b.Len() < head {
+			b.WriteString(pool[rng.IntN(len(pool))])
+		}
+		for range rng.IntN(5) {
+			b.WriteString(mixed[rng.IntN(len(mixed))])
+		}
+		in := b.String()
+		checkSanitized(t, in, sanitizeName(in))
+		if t.Failed() {
+			return
+		}
+	}
 }
 
 func TestCutRunes(t *testing.T) {

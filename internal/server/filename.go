@@ -22,7 +22,8 @@ const (
 // result is never used as a path: it only labels the report. It is always
 // non-empty valid UTF-8 of at most 255 bytes, contains no path separators, no
 // control or format characters (which includes bidirectional overrides), and
-// keeps a short file extension when a long name has to be cut.
+// keeps a short file extension when a long name has to be cut. It is idempotent:
+// sanitizeName(sanitizeName(x)) equals sanitizeName(x).
 func sanitizeName(raw string) string {
 	s := strings.ToValidUTF8(raw, "")
 	s = strings.ReplaceAll(s, `\`, "/")
@@ -33,11 +34,12 @@ func sanitizeName(raw string) string {
 	for len(s) >= 2 && s[1] == ':' && isASCIILetter(s[0]) { // drive-relative remnants such as "C:file.exe"
 		s = strings.TrimSpace(s[2:])
 	}
-	if strings.Trim(s, ". ") == "" {
-		return fallbackName
-	}
+	// Cut first and judge what is left afterwards. Cutting a long name can leave
+	// nothing but dots and spaces (the fuzzer found ". . . 0." cut to ". . . .."),
+	// and the fallback must apply in this call, not only when the result is
+	// sanitized a second time.
 	s = truncateName(s, maxNameBytes)
-	if s == "" {
+	if strings.Trim(s, ". ") == "" {
 		return fallbackName
 	}
 	return s

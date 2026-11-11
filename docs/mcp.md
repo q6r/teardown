@@ -16,6 +16,12 @@ teardown mcp [--root DIR]...
   Roots are opened with `os.Root`, so `..` and symbolic links or junctions that leave a root are not
   followed. Directories and devices are refused. Output is capped (256 KiB per answer) and every
   call has a one-minute limit.
+- Names of a place: a path may name a place inside a root by any of the names the operating system
+  gives it. The directories above the file are resolved first, so `/var/...` and `/private/var/...`
+  (macOS temporary folders) are the same place, and on Windows so are an 8.3 short name such as
+  `RUNNER~1` and the long name, in any letter case. A path on a Windows volume that no root is on
+  (another drive, `\\host\share`) is refused without being looked up, and the read itself always goes
+  through `os.Root`, whatever the spelling.
 - Failures are returned as tool results with `isError: true` and a message the agent can act on.
 
 ## Tools

@@ -143,7 +143,9 @@ func ruleKeylogging(in *input) []report.Finding {
 	keys := in.imp.match(apiKeys)
 	ctx := in.imp.match(apiWindowContext)
 	async := in.imp.match([]string{"getasynckeystate"})
-	if !(len(hooks) > 0 && len(keys) > 0) && !(len(async) > 0 && len(ctx) > 0) {
+	hooksAndKeys := len(hooks) > 0 && len(keys) > 0
+	asyncInContext := len(async) > 0 && len(ctx) > 0
+	if !hooksAndKeys && !asyncInContext {
 		return nil
 	}
 	var evidence []string

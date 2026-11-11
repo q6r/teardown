@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -50,6 +51,8 @@ func Serve(ctx context.Context, ln net.Listener, cfg Config) (err error) {
 
 	srv := newHTTPServer(s.Handler(), s.log)
 	srv.RegisterOnShutdown(s.stopStreams)
+	spare := newSpareConns()
+	srv.ConnState = spare.track
 	announce(s.cfg.Stderr, cfg.Addr, s.loopback)
 
 	served := make(chan error, 1)
@@ -57,22 +60,29 @@ func Serve(ctx context.Context, ln net.Listener, cfg Config) (err error) {
 
 	select {
 	case err := <-served:
-		if errors.Is(err, http.ErrServerClosed) {
-			return nil
-		}
-		return fmt.Errorf("serve: %w", err)
+		return serveResult(err)
 	case <-ctx.Done():
 	}
 
+	spare.closeAll()
 	grace, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownGrace)
 	defer cancel()
 	if err := srv.Shutdown(grace); err != nil {
 		closeErr := srv.Close()
-		<-served
-		return fmt.Errorf("shutdown did not finish within %s, connections were closed: %w", shutdownGrace, errors.Join(err, closeErr))
+		serveErr := serveResult(<-served)
+		return fmt.Errorf("shutdown did not finish within %s, connections were closed: %w", shutdownGrace, errors.Join(err, closeErr, serveErr))
 	}
-	<-served
-	return nil
+	return serveResult(<-served)
+}
+
+// serveResult turns what http.Server.Serve returned into a result for the
+// caller: http.ErrServerClosed is how a server that was shut down ends, not a
+// failure.
+func serveResult(err error) error {
+	if err == nil || errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return fmt.Errorf("serve: %w", err)
 }
 
 // newHTTPServer returns the http.Server used by Serve. There is deliberately no
@@ -86,6 +96,47 @@ func newHTTPServer(h http.Handler, log *slog.Logger) *http.Server {
 		MaxHeaderBytes:    maxHeaderBytes,
 		ErrorLog:          slog.NewLogLogger(log.Handler(), slog.LevelWarn),
 	}
+}
+
+// spareConns remembers the connections that were accepted but have not sent a
+// request yet. Browsers open such spare connections ahead of time, and
+// net/http's Shutdown counts each of them as busy until it is more than five
+// seconds old, which would eat the grace period that belongs to requests really
+// in flight. At shutdown they are closed at once: nothing was asked of them.
+type spareConns struct {
+	mu      sync.Mutex
+	conns   map[net.Conn]struct{}
+	closing bool
+}
+
+func newSpareConns() *spareConns {
+	return &spareConns{conns: make(map[net.Conn]struct{})}
+}
+
+// track is the http.Server.ConnState hook.
+func (sc *spareConns) track(c net.Conn, state http.ConnState) {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	switch {
+	case state != http.StateNew:
+		delete(sc.conns, c) // it sent a request, or it is gone
+	case sc.closing:
+		_ = c.Close() // accepted while shutting down: it will not be served
+	default:
+		sc.conns[c] = struct{}{}
+	}
+}
+
+// closeAll closes every connection that has not sent a request yet, and every
+// one that is accepted from now on until the server is gone.
+func (sc *spareConns) closeAll() {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	sc.closing = true
+	for c := range sc.conns {
+		_ = c.Close()
+	}
+	clear(sc.conns)
 }
 
 // announce prints the start-up banner, plus the exposure warning for

@@ -1,7 +1,7 @@
 package pe
 
 import (
-	"crypto/md5" //nolint:gosec // see parseImports.
+	"crypto/md5"
 	"encoding/binary"
 	"encoding/hex"
 	"math"
@@ -78,7 +78,8 @@ func (p *parser) parseImports() {
 	if d.rva == 0 {
 		return
 	}
-	p.impMD5 = md5.New() //nolint:gosec // the import hash is defined as an MD5 (pefile compatible), not a security control.
+	// The import hash is defined as an MD5 (pefile compatible), not a security control.
+	p.impMD5 = md5.New()
 	p.hasher = newImpHasher(p.impMD5)
 	p.hashOK = true
 	for i := uint64(0); ; i++ {
@@ -113,7 +114,7 @@ func (p *parser) parseImports() {
 		if originalFirstThunk == 0 && nameRVA == 0 && firstThunk == 0 {
 			break
 		}
-		libRaw, ok := p.cstringRVA(nameRVA, maxNameLen)
+		libRaw, ok := p.cstringRVA(nameRVA)
 		if !ok {
 			p.notef("import descriptor %d has a DLL name (RVA %#x) outside the file; the remaining imports were ignored", i, nameRVA)
 			p.hashOK = false
@@ -186,7 +187,7 @@ func (p *parser) parseDelayImports() {
 		thunkRVA, ok2 := p.delayRVA(thunkField, vaBased)
 		libRaw, ok3 := "", false
 		if ok1 {
-			libRaw, ok3 = p.cstringRVA(nameRVA, maxNameLen)
+			libRaw, ok3 = p.cstringRVA(nameRVA)
 		}
 		if !ok1 || !ok2 || !ok3 {
 			p.notef("delay-load descriptor %d points outside the file; the remaining delay-load imports were ignored", i)
