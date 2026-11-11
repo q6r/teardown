@@ -1,0 +1,45 @@
+/* app.css: dashboard-only styles (the home page: hero spacing, uploads, the list of analyses). Tokens of the Aurora UI kit only. */
+
+.td-noscript { padding: 32px 24px; color: var(--ink-2); }
+.td-loading, .td-error { padding: 24px 0; }
+
+/* home: one centred column under the glow */
+.td-home { display: flex; flex-direction: column; gap: 18px; max-width: 760px; margin: 0 auto; }
+.td-home .a-headline { outline: none; }
+.td-home .a-hero { padding-bottom: 4px; }
+.td-drop.a-dropzone { padding: 30px 24px; gap: 8px; }
+
+/* uploads */
+.td-uploads__list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.td-upload { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.td-upload:first-child { padding-top: 0; }
+.td-upload:last-child { padding-bottom: 0; border-bottom: 0; }
+.td-upload__head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.td-upload__name { min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+.td-upload.is-done .td-upload__bar { display: none; }
+.td-upload__actions { display: inline-flex; align-items: center; gap: 8px; }
+.td-upload__error { margin: 0; color: var(--ink-2); font-size: 13px; overflow-wrap: anywhere; }
+
+/* the list of analyses: the timeline of the home page, one row per analysis */
+.td-recents__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 8px; }
+.td-recents__head .a-recents__title { margin: 0; }
+.td-recents .td-search { width: 230px; max-width: 100%; }
+.td-recent { display: flex; align-items: center; gap: 4px; }
+.td-recent .a-recent { flex: 1 1 auto; width: auto; min-width: 0; gap: 14px; }
+.td-recent__main { display: flex; flex: 1 1 auto; align-items: center; gap: 10px; min-width: 0; }
+.td-recent .a-badge { flex: none; min-width: 108px; }
+.td-recent .a-recent__title { flex: 0 1 auto; color: var(--ink-1); font-size: 13px; font-weight: 500; }
+.td-recent__type { flex: 0 100 auto; min-width: 0; overflow: hidden; color: var(--ink-3); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+.td-recent__size { flex: none; width: 9ch; font-size: 11.5px; text-align: right; }
+.td-recent time { flex: none; width: 7ch; text-align: right; }
+.td-recent__del { flex: none; color: var(--ink-3); }
+.td-recent--pending .a-recent { cursor: default; }
+.td-recent--pending .a-recent:hover { color: var(--ink-2); }
+.td-recent.is-new { animation: a-feed-in 560ms var(--ease-out) both; }
+.td-recents__empty { margin: 0; padding: 6px 0 6px 25px; font-size: 12.5px; }
+.td-recents__more { margin: 8px 0 0 25px; }
+
+@media (max-width: 640px) {
+  .td-recent__type, .td-recent__size { display: none; }
+  .td-recents .td-search { width: 100%; }
+}

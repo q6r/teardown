@@ -1,0 +1,1360 @@
+{
+  "schema": "teardown.report/v1",
+  "tool": {
+    "name": "teardown",
+    "version": "dev"
+  },
+  "generatedAt": "2026-11-10T12:00:00Z",
+  "durationMs": 0,
+  "file": {
+    "name": "sample.exe",
+    "size": 19200
+  },
+  "type": {
+    "id": "pe",
+    "family": "executable",
+    "label": "PE32+ executable for Windows (x86-64, console)",
+    "mime": "application/vnd.microsoft.portable-executable",
+    "confidence": "high",
+    "tags": [
+      "64-bit",
+      "exe",
+      "x86-64"
+    ]
+  },
+  "hashes": {
+    "md5": "d66cc605f1a2a27ba03d75d94b8c614a",
+    "sha1": "b6494791e9a560aa7fd6b5ebd4961a0ba5cb76be",
+    "sha256": "b289cf9996adf6315988dfafbddd89b224e4db1149dda2db3fe1bd01201cb086",
+    "imphash": "c75895b40ef048b1c333b95f1de4c9a7"
+  },
+  "entropy": {
+    "overall": 6.301,
+    "windowSize": 256,
+    "windows": [
+      3.1,
+      1.329,
+      1.246,
+      0,
+      0.111,
+      0,
+      3.415,
+      3.25,
+      2.86,
+      3.859,
+      1.415,
+      0,
+      0.564,
+      0,
+      5.343,
+      4.806,
+      7.171,
+      7.183,
+      7.218,
+      7.159,
+      7.138,
+      7.157,
+      7.148,
+      7.181,
+      7.16,
+      7.099,
+      7.206,
+      7.157,
+      7.149,
+      7.121,
+      7.156,
+      7.111,
+      7.107,
+      7.206,
+      7.138,
+      7.138,
+      7.138,
+      7.145,
+      7.045,
+      7.084,
+      7.254,
+      7.139,
+      7.154,
+      7.236,
+      7.211,
+      7.147,
+      7.147,
+      7.183,
+      0,
+      0,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ]
+  },
+  "sections": [
+    {
+      "name": ".text",
+      "virtualSize": 512,
+      "rawSize": 512,
+      "offset": 1024,
+      "entropy": 0.061,
+      "flags": [
+        "R",
+        "X"
+      ],
+      "suspicious": false
+    },
+    {
+      "name": ".rdata",
+      "virtualSize": 1075,
+      "rawSize": 1536,
+      "offset": 1536,
+      "entropy": 2.867,
+      "flags": [
+        "R"
+      ],
+      "suspicious": false
+    },
+    {
+      "name": ".data",
+      "virtualSize": 32,
+      "rawSize": 512,
+      "offset": 3072,
+      "entropy": 0.314,
+      "flags": [
+        "R",
+        "W"
+      ],
+      "suspicious": false
+    },
+    {
+      "name": ".config",
+      "virtualSize": 452,
+      "rawSize": 512,
+      "offset": 3584,
+      "entropy": 5.328,
+      "flags": [
+        "R"
+      ],
+      "suspicious": true,
+      "reasons": [
+        "unusual section name \".config\""
+      ]
+    },
+    {
+      "name": ".packed",
+      "virtualSize": 8192,
+      "rawSize": 8192,
+      "offset": 4096,
+      "entropy": 7.977,
+      "flags": [
+        "R",
+        "X"
+      ],
+      "suspicious": true,
+      "reasons": [
+        "section name is typical of an unnamed packer (.packed)"
+      ]
+    },
+    {
+      "name": ".rwx",
+      "virtualSize": 512,
+      "rawSize": 512,
+      "offset": 12288,
+      "entropy": 0,
+      "flags": [
+        "R",
+        "W",
+        "X"
+      ],
+      "suspicious": true,
+      "reasons": [
+        "writable and executable (RWX)",
+        "unusual section name \".rwx\""
+      ]
+    }
+  ],
+  "imports": [
+    {
+      "library": "KERNEL32.dll",
+      "count": 9,
+      "functions": [
+        "ExitProcess",
+        "GetProcAddress",
+        "LoadLibraryA",
+        "VirtualAllocEx",
+        "WriteProcessMemory",
+        "CreateRemoteThread",
+        "OpenProcess",
+        "IsDebuggerPresent",
+        "CreateProcessW"
+      ]
+    },
+    {
+      "library": "USER32.dll",
+      "count": 3,
+      "functions": [
+        "SetWindowsHookExA",
+        "GetAsyncKeyState",
+        "GetForegroundWindow"
+      ]
+    },
+    {
+      "library": "WS2_32.dll",
+      "count": 5,
+      "functions": [
+        "WSAStartup",
+        "socket",
+        "connect",
+        "send",
+        "recv"
+      ]
+    },
+    {
+      "library": "ADVAPI32.dll",
+      "count": 3,
+      "functions": [
+        "CryptAcquireContextA",
+        "CryptEncrypt",
+        "RegSetValueExA"
+      ]
+    },
+    {
+      "library": "URLMON.dll",
+      "count": 1,
+      "functions": [
+        "URLDownloadToFileA"
+      ]
+    }
+  ],
+  "exports": [],
+  "strings": {
+    "total": 93,
+    "minLength": 5,
+    "truncated": true,
+    "byCategory": {
+      "api": 19,
+      "command": 2,
+      "ip": 1,
+      "path": 2,
+      "plain": 63,
+      "registry": 1,
+      "secret": 2,
+      "url": 2,
+      "useragent": 1
+    },
+    "items": [
+      {
+        "value": "!This program cannot be run in DOS mode.",
+        "offset": 77,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": ".text",
+        "offset": 392,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "`.rdata",
+        "offset": 431,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "@.data",
+        "offset": 471,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": ".config",
+        "offset": 512,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "@.packed",
+        "offset": 551,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "`.rwx",
+        "offset": 591,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "ExitProcess",
+        "offset": 1674,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "system"
+      },
+      {
+        "value": "GetProcAddress",
+        "offset": 1688,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "loader"
+      },
+      {
+        "value": "LoadLibraryA",
+        "offset": 1706,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "loader"
+      },
+      {
+        "value": "VirtualAllocEx",
+        "offset": 1722,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "process"
+      },
+      {
+        "value": "WriteProcessMemory",
+        "offset": 1740,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "process"
+      },
+      {
+        "value": "CreateRemoteThread",
+        "offset": 1762,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "process"
+      },
+      {
+        "value": "OpenProcess",
+        "offset": 1784,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "process"
+      },
+      {
+        "value": "IsDebuggerPresent",
+        "offset": 1798,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "antidebug"
+      },
+      {
+        "value": "CreateProcessW",
+        "offset": 1818,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "process"
+      },
+      {
+        "value": "KERNEL32.dll",
+        "offset": 1833,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "SetWindowsHookExA",
+        "offset": 2010,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "keylog"
+      },
+      {
+        "value": "GetAsyncKeyState",
+        "offset": 2030,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "keylog"
+      },
+      {
+        "value": "GetForegroundWindow",
+        "offset": 2050,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "surveil"
+      },
+      {
+        "value": "USER32.dll",
+        "offset": 2070,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "WSAStartup",
+        "offset": 2154,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "network"
+      },
+      {
+        "value": "socket",
+        "offset": 2168,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "network"
+      },
+      {
+        "value": "connect",
+        "offset": 2178,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "network"
+      },
+      {
+        "value": "WS2_32.dll",
+        "offset": 2201,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "CryptAcquireContextA",
+        "offset": 2314,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "crypto"
+      },
+      {
+        "value": "CryptEncrypt",
+        "offset": 2338,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "crypto"
+      },
+      {
+        "value": "RegSetValueExA",
+        "offset": 2354,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "registry"
+      },
+      {
+        "value": "ADVAPI32.dll",
+        "offset": 2369,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "URLDownloadToFileA",
+        "offset": 2450,
+        "encoding": "ascii",
+        "category": "api",
+        "redacted": false,
+        "kind": "network"
+      },
+      {
+        "value": "URLMON.dll",
+        "offset": 2469,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "C:\\Users\\dev\\src\\loader\\x64\\Release\\loader.pdb",
+        "offset": 2564,
+        "encoding": "ascii",
+        "category": "path",
+        "redacted": false,
+        "kind": "windows"
+      },
+      {
+        "value": "teardown-fixture",
+        "offset": 3072,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "https://update.example.test/gate.php",
+        "offset": 3584,
+        "encoding": "ascii",
+        "category": "url",
+        "redacted": false,
+        "kind": "https"
+      },
+      {
+        "value": "http://198.51.100.23:8080/beacon",
+        "offset": 3621,
+        "encoding": "ascii",
+        "category": "url",
+        "redacted": false,
+        "kind": "http"
+      },
+      {
+        "value": "203.0.113.7",
+        "offset": 3654,
+        "encoding": "ascii",
+        "category": "ip",
+        "redacted": false,
+        "kind": "ipv4"
+      },
+      {
+        "value": "ops@example.test",
+        "offset": 3666,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "cmd.exe /c whoami /all",
+        "offset": 3683,
+        "encoding": "ascii",
+        "category": "command",
+        "redacted": false,
+        "kind": "cmd"
+      },
+      {
+        "value": "powershell -nop -w hidden -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQA",
+        "offset": 3706,
+        "encoding": "ascii",
+        "category": "command",
+        "redacted": false,
+        "kind": "powershell"
+      },
+      {
+        "value": "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "offset": 3778,
+        "encoding": "ascii",
+        "category": "registry",
+        "redacted": false,
+        "kind": "hklm"
+      },
+      {
+        "value": "C:\\Users\\dev\\AppData\\Roaming\\svc\\update.exe",
+        "offset": 3829,
+        "encoding": "ascii",
+        "category": "path",
+        "redacted": false,
+        "kind": "windows"
+      },
+      {
+        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "offset": 3873,
+        "encoding": "ascii",
+        "category": "useragent",
+        "redacted": false,
+        "kind": "browser"
+      },
+      {
+        "value": "AKIA…(20 chars)",
+        "offset": 3934,
+        "encoding": "ascii",
+        "category": "secret",
+        "redacted": true,
+        "kind": "aws-access-key-id"
+      },
+      {
+        "value": "ghp_…(40 chars)",
+        "offset": 3955,
+        "encoding": "ascii",
+        "category": "secret",
+        "redacted": true,
+        "kind": "github-token"
+      },
+      {
+        "value": "this is a harmless configuration sample",
+        "offset": 3996,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "VV{v;stpr",
+        "offset": 4260,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "lITx*",
+        "offset": 4316,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "'lQed",
+        "offset": 4585,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "}\\i${",
+        "offset": 4954,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "/6nFR",
+        "offset": 4990,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "ZP.@E",
+        "offset": 5008,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "{n|c4",
+        "offset": 5077,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "\\O5}=",
+        "offset": 5405,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "\u003cEMO, @o",
+        "offset": 5493,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "c4Bx1X",
+        "offset": 5603,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "H~n8P",
+        "offset": 5882,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "mX= (",
+        "offset": 6530,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "3Rm@x",
+        "offset": 6669,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "6=St)|Z",
+        "offset": 6790,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "!EA@2~f",
+        "offset": 6828,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "UkGKZ",
+        "offset": 6929,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "\u003cM02s",
+        "offset": 7007,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "[JUhZ",
+        "offset": 7268,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "yY\"H\u0026",
+        "offset": 7280,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "?`BZ@",
+        "offset": 7480,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "\"=\u003cHb[",
+        "offset": 7672,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "YmPae",
+        "offset": 7863,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "6)yTf",
+        "offset": 8044,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "6lfc`R",
+        "offset": 8181,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "70\u003cAP",
+        "offset": 8317,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "9wIxf",
+        "offset": 8773,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "V?:9^",
+        "offset": 8861,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "L!G,d1m",
+        "offset": 8982,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "\u003ePH5j0\\",
+        "offset": 9076,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "%I4PS",
+        "offset": 9271,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "0l,EH",
+        "offset": 9888,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "wBW3\u003e",
+        "offset": 10050,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": ",^P/Z",
+        "offset": 10084,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "3^AVH",
+        "offset": 10103,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "+{u,Z",
+        "offset": 10194,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "JAGDk}m",
+        "offset": 10448,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "[jlOA-O+pV-",
+        "offset": 10672,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "9 .. ",
+        "offset": 11375,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "9{^mM",
+        "offset": 11381,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "@_[\"i",
+        "offset": 11414,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "m_R3o",
+        "offset": 11602,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "N9~\"L#",
+        "offset": 11908,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "gkN!\"\u003c",
+        "offset": 12087,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "~h@+t",
+        "offset": 12165,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "gW2\u003c7",
+        "offset": 12197,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "_*egO",
+        "offset": 12210,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-",
+        "offset": 12800,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      },
+      {
+        "value": "overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-overlay-",
+        "offset": 16896,
+        "encoding": "ascii",
+        "category": "plain",
+        "redacted": false
+      }
+    ]
+  },
+  "hardening": [
+    {
+      "id": "aslr",
+      "label": "ASLR (DYNAMIC_BASE)",
+      "status": "disabled",
+      "detail": "DYNAMIC_BASE is not set; the image always loads at its preferred base address"
+    },
+    {
+      "id": "high-entropy-va",
+      "label": "High-entropy ASLR (HIGH_ENTROPY_VA)",
+      "status": "enabled",
+      "detail": "HIGH_ENTROPY_VA is set but has no effect without DYNAMIC_BASE"
+    },
+    {
+      "id": "dep",
+      "label": "DEP (NX_COMPAT)",
+      "status": "enabled",
+      "detail": "NX_COMPAT is set; the image opts in to data execution prevention"
+    },
+    {
+      "id": "cfg",
+      "label": "Control Flow Guard (GUARD_CF)",
+      "status": "disabled",
+      "detail": "GUARD_CF is not set"
+    },
+    {
+      "id": "seh",
+      "label": "Safe exception handling (SafeSEH / NO_SEH)",
+      "status": "n/a",
+      "detail": "SafeSEH and NO_SEH apply to x86 images only"
+    },
+    {
+      "id": "force-integrity",
+      "label": "Forced signature integrity (FORCE_INTEGRITY)",
+      "status": "disabled",
+      "detail": "FORCE_INTEGRITY is not set"
+    },
+    {
+      "id": "signed",
+      "label": "Authenticode signature present (not verified)",
+      "status": "disabled",
+      "detail": "no Authenticode certificate table"
+    }
+  ],
+  "details": {
+    "pe": {
+      "bits": 64,
+      "characteristics": [
+        "RELOCS_STRIPPED",
+        "EXECUTABLE_IMAGE",
+        "LARGE_ADDRESS_AWARE"
+      ],
+      "checksum": "0x0",
+      "delayImportLibraries": [],
+      "dllCharacteristics": [
+        "HIGH_ENTROPY_VA",
+        "NX_COMPAT",
+        "TERMINAL_SERVER_AWARE"
+      ],
+      "dotNet": false,
+      "dotNetFlags": [],
+      "dotNetVersion": "",
+      "entryPoint": "0x1000",
+      "entrySection": ".text",
+      "exportCount": 0,
+      "exportName": "",
+      "imageBase": "0x140000000",
+      "importCount": 21,
+      "kind": "exe",
+      "linkerVersion": "14.29",
+      "machine": "x86-64",
+      "osVersion": "6.0",
+      "overlaySize": 6400,
+      "packerHints": [
+        "an unnamed packer (.packed)"
+      ],
+      "pdbAge": 1,
+      "pdbGuid": "A3A2A1A0-A5A4-A7A6-A8A9-AAABACADAEAF",
+      "pdbPath": "C:\\Users\\dev\\src\\loader\\x64\\Release\\loader.pdb",
+      "reproducible": false,
+      "securityCookie": false,
+      "signatureSize": 0,
+      "signatureType": "",
+      "signed": false,
+      "sizeOfImage": 32768,
+      "subsystem": "windows-cui",
+      "subsystemVersion": "6.0",
+      "timestamp": "2023-11-14T22:13:20Z",
+      "timestampRaw": 1700000000,
+      "tlsCallbacks": 0
+    }
+  },
+  "findings": [
+    {
+      "id": "imports.process-injection",
+      "title": "Imports cover the full process-injection chain (allocate, write, execute)",
+      "severity": "high",
+      "category": "imports",
+      "confidence": "medium",
+      "evidence": [
+        "allocate or map memory in another process: KERNEL32.dll!VirtualAllocEx",
+        "write to another process: KERNEL32.dll!WriteProcessMemory",
+        "start or hijack a thread there: KERNEL32.dll!CreateRemoteThread",
+        "process handle: KERNEL32.dll!OpenProcess"
+      ],
+      "limitations": [
+        "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
+        "Debuggers, profilers, anti-virus and game overlays legitimately use remote memory and thread APIs.",
+        "Functions resolved at run time (GetProcAddress, dlsym) or hidden by a packer are not in the import table, so a missing cluster proves nothing either."
+      ]
+    },
+    {
+      "id": "secrets.aws-access-key-id",
+      "title": "AWS access key ID embedded in the file",
+      "severity": "high",
+      "category": "secrets",
+      "confidence": "medium",
+      "evidence": [
+        "offset 0xf5e (ascii): AKIA…(20 chars)"
+      ],
+      "limitations": [
+        "Pattern match only: the credential was not validated and may be a placeholder, documentation example, test fixture or an already revoked key.",
+        "Values are redacted in every output: only the first four characters and the length are kept.",
+        "The string list is truncated, so further secrets may exist beyond the ones listed."
+      ]
+    },
+    {
+      "id": "secrets.github-token",
+      "title": "GitHub token embedded in the file",
+      "severity": "high",
+      "category": "secrets",
+      "confidence": "medium",
+      "evidence": [
+        "offset 0xf73 (ascii): ghp_…(40 chars)"
+      ],
+      "limitations": [
+        "Pattern match only: the credential was not validated and may be a placeholder, documentation example, test fixture or an already revoked key.",
+        "Values are redacted in every output: only the first four characters and the length are kept.",
+        "The string list is truncated, so further secrets may exist beyond the ones listed."
+      ]
+    },
+    {
+      "id": "hardening.no-aslr",
+      "title": "ASLR is disabled (image has a fixed base address)",
+      "severity": "medium",
+      "category": "hardening",
+      "confidence": "high",
+      "evidence": [
+        "ASLR (DYNAMIC_BASE): DYNAMIC_BASE is not set; the image always loads at its preferred base address"
+      ],
+      "limitations": [
+        "Describes how hard the file is to exploit, not whether it is malicious: older toolchains, statically linked and embedded software often lack these mitigations.",
+        "The dynamic-base flag is necessary but not sufficient: ASLR is only effective when relocation data is present."
+      ]
+    },
+    {
+      "id": "imports.download-and-execute",
+      "title": "Imports a file-download API together with process-launch APIs",
+      "severity": "medium",
+      "category": "imports",
+      "confidence": "low",
+      "evidence": [
+        "download: URLMON.dll!URLDownloadToFileA",
+        "launch: KERNEL32.dll!CreateProcessW"
+      ],
+      "limitations": [
+        "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
+        "Updaters and installers legitimately download and run files; nothing here shows what is downloaded or whether it is run.",
+        "Functions resolved at run time (GetProcAddress, dlsym) or hidden by a packer are not in the import table, so a missing cluster proves nothing either."
+      ]
+    },
+    {
+      "id": "imports.keylogging",
+      "title": "Imports resemble keyboard capture",
+      "severity": "medium",
+      "category": "imports",
+      "confidence": "low",
+      "evidence": [
+        "hook installation: USER32.dll!SetWindowsHookExA",
+        "key state / raw input: USER32.dll!GetAsyncKeyState",
+        "window context: USER32.dll!GetForegroundWindow"
+      ],
+      "limitations": [
+        "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
+        "Input-method editors, accessibility tools, macro/automation utilities and games use these APIs for legitimate hotkeys and overlays.",
+        "Functions resolved at run time (GetProcAddress, dlsym) or hidden by a packer are not in the import table, so a missing cluster proves nothing either."
+      ]
+    },
+    {
+      "id": "indicators.suspicious-commands",
+      "title": "Embedded command lines with download, encoding or hidden-execution patterns",
+      "severity": "medium",
+      "category": "indicators",
+      "confidence": "medium",
+      "evidence": [
+        "cmd.exe /c whoami /all",
+        "powershell -nop -w hidden -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQA"
+      ],
+      "limitations": [
+        "Command lines in a binary may belong to installers, update scripts, help text or documentation rather than code that runs; they are not executed here.",
+        "Only the strings kept in the report were examined (see strings.truncated)."
+      ]
+    },
+    {
+      "id": "packing.high-entropy-section",
+      "title": "Executable section with very high entropy (possible packing or encryption)",
+      "severity": "medium",
+      "category": "packing",
+      "confidence": "medium",
+      "evidence": [
+        ".packed: entropy 7.98, raw size 8.0 KiB, flags R-X"
+      ],
+      "limitations": [
+        "Compressed or encrypted resources, embedded images, archives and fonts are legitimately high-entropy; high entropy suggests packing or encryption but does not prove either.",
+        "Entropy is computed over the raw bytes of each section; very large sections are sampled."
+      ]
+    },
+    {
+      "id": "packing.known-packer",
+      "title": "Section names match a known packer or protector",
+      "severity": "medium",
+      "category": "packing",
+      "confidence": "medium",
+      "evidence": [
+        "an unnamed packer (.packed)"
+      ],
+      "limitations": [
+        "Section names are chosen by the linker or packer and are trivial to fake or rename.",
+        "Commercial protectors are also used on legitimate software (licensing, anti-tamper)."
+      ]
+    },
+    {
+      "id": "structure.rwx-section",
+      "title": "Section is both writable and executable",
+      "severity": "medium",
+      "category": "structure",
+      "confidence": "high",
+      "evidence": [
+        ".rwx: flags RWX, raw size 512 B"
+      ],
+      "limitations": [
+        "Describes the file layout, not run-time behaviour. Packers, self-extractors, JIT-style loaders and some legacy toolchains legitimately use RWX sections.",
+        "The section flags come from the header and may not match the protection the loader finally applies."
+      ]
+    },
+    {
+      "id": "indicators.network",
+      "title": "Hard-coded network indicators",
+      "severity": "low",
+      "category": "indicators",
+      "confidence": "low",
+      "evidence": [
+        "URLs: 2 found, e.g. http://198.51.100.23:8080/beacon, https://update.example.test/gate.php",
+        "public IP addresses: 1 found, e.g. 203.0.113.7"
+      ],
+      "limitations": [
+        "A string in a binary may be dead code, a library default, a documentation or licence link, an XML namespace or a decoy; presence does not show that the program contacts it.",
+        "Dotted-quad strings can be version numbers rather than IP addresses.",
+        "Strings longer than 400 characters are ignored here: concatenated string tables (Go, Rust) produce accidental matches.",
+        "Only the strings kept in the report were examined (see strings.truncated)."
+      ]
+    },
+    {
+      "id": "indicators.persistence-registry",
+      "title": "Registry paths associated with autostart or hijacking",
+      "severity": "low",
+      "category": "indicators",
+      "confidence": "low",
+      "evidence": [
+        "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+      ],
+      "limitations": [
+        "Installers, updaters and system utilities legitimately reference the same keys; the strings do not show the program writes them."
+      ]
+    },
+    {
+      "id": "privacy.pdb-path",
+      "title": "Debug (PDB) path is embedded in the binary",
+      "severity": "low",
+      "category": "privacy",
+      "confidence": "high",
+      "evidence": [
+        "C:\\Users\\dev\\src\\loader\\x64\\Release\\loader.pdb"
+      ],
+      "limitations": [
+        "A PDB path can reveal the build machine's directory layout, user name or project names; it is also a useful attribution and clustering hint.",
+        "The path is metadata written by the linker and can be edited or stripped without changing behaviour."
+      ]
+    },
+    {
+      "id": "signature.unsigned",
+      "title": "No embedded code signature present",
+      "severity": "low",
+      "category": "signature",
+      "confidence": "high",
+      "evidence": [
+        "Authenticode signature present (not verified): no Authenticode certificate table"
+      ],
+      "limitations": [
+        "Windows system files and driver packages are often signed through security catalogs (.cat) instead of an embedded signature, which this check cannot see.",
+        "Only the presence of a signature is checked; a present signature is not verified here and an absent one is normal for open-source and internal tools."
+      ]
+    },
+    {
+      "id": "structure.suspicious-section",
+      "title": "Sections with unusual structure",
+      "severity": "low",
+      "category": "structure",
+      "confidence": "medium",
+      "evidence": [
+        ".config: unusual section name \".config\"",
+        ".packed: section name is typical of an unnamed packer (.packed)",
+        ".rwx: writable and executable (RWX); unusual section name \".rwx\""
+      ],
+      "limitations": [
+        "Odd section names and sizes are produced by many legitimate toolchains (Go, Delphi, custom linkers, resource packers) as well as by packers."
+      ]
+    },
+    {
+      "id": "hardening.no-cfg",
+      "title": "Control Flow Guard is not enabled",
+      "severity": "info",
+      "category": "hardening",
+      "confidence": "high",
+      "evidence": [
+        "Control Flow Guard (GUARD_CF): GUARD_CF is not set"
+      ],
+      "limitations": [
+        "Describes how hard the file is to exploit, not whether it is malicious: older toolchains, statically linked and embedded software often lack these mitigations.",
+        "CFG is only worthwhile for code built with it; many third-party and non-MSVC toolchains do not offer it."
+      ]
+    },
+    {
+      "id": "imports.crypto",
+      "title": "Imports cryptographic APIs",
+      "severity": "info",
+      "category": "imports",
+      "confidence": "medium",
+      "evidence": [
+        "ADVAPI32.dll!CryptAcquireContextA",
+        "ADVAPI32.dll!CryptEncrypt"
+      ],
+      "limitations": [
+        "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
+        "Cryptography is used for TLS, hashing, licensing and DRM as often as for ransomware or payload decryption; static imports cannot tell which.",
+        "Statically linked crypto code (Go, Rust, bundled OpenSSL) leaves no import trace."
+      ]
+    },
+    {
+      "id": "imports.networking",
+      "title": "Imports networking APIs",
+      "severity": "info",
+      "category": "imports",
+      "confidence": "medium",
+      "evidence": [
+        "URLMON.dll!URLDownloadToFileA",
+        "WS2_32.dll!WSAStartup",
+        "WS2_32.dll!connect",
+        "WS2_32.dll!recv",
+        "WS2_32.dll!send",
+        "WS2_32.dll!socket"
+      ],
+      "limitations": [
+        "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
+        "Network access says nothing about what is contacted; see the extracted URLs and addresses for candidates."
+      ]
+    },
+    {
+      "id": "structure.overlay",
+      "title": "Data is appended after the PE image",
+      "severity": "info",
+      "category": "structure",
+      "confidence": "low",
+      "evidence": [
+        "overlay of 6.2 KiB (33% of the file)"
+      ],
+      "limitations": [
+        "Installers, self-extractors, Python/Electron/Go bundlers and signed binaries append data on purpose; malware droppers hide payloads the same way. The overlay is not analysed here.",
+        "The Authenticode certificate table is excluded from the overlay size when it sits at the end of the file."
+      ]
+    }
+  ],
+  "risk": {
+    "score": 100,
+    "label": "critical",
+    "basis": [
+      "points per finding = severity (info 0, low 4, medium 10, high 20, critical 40) x confidence (low 0.4, medium 0.7, high 1.0), rounded",
+      "+14  imports.process-injection (high severity, medium confidence)",
+      "+14  secrets.aws-access-key-id (high severity, medium confidence)",
+      "+14  secrets.github-token (high severity, medium confidence)",
+      "+10  hardening.no-aslr (medium severity, high confidence)",
+      "+4  imports.download-and-execute (medium severity, low confidence)",
+      "+4  imports.keylogging (medium severity, low confidence)",
+      "+7  indicators.suspicious-commands (medium severity, medium confidence)",
+      "+7  packing.high-entropy-section (medium severity, medium confidence)",
+      "+7  packing.known-packer (medium severity, medium confidence)",
+      "+10  structure.rwx-section (medium severity, high confidence)",
+      "+2  indicators.network (low severity, low confidence)",
+      "+2  indicators.persistence-registry (low severity, low confidence)",
+      "+4  privacy.pdb-path (low severity, high confidence)",
+      "+4  signature.unsigned (low severity, high confidence)",
+      "+3  structure.suspicious-section (low severity, medium confidence)",
+      "total 106 limited to 100",
+      "score 100 =\u003e critical (low \u003c 20 \u003c= medium \u003c 45 \u003c= high \u003c 70 \u003c= critical)"
+    ]
+  },
+  "limitations": [
+    "Static analysis only; the file was never executed.",
+    "Findings are leads, not verdicts: each one states its evidence and how it can be wrong, and the risk score only orders a review queue.",
+    "Imports resolved at run time, and code hidden by packers or protectors, are invisible to static analysis.",
+    "Some very long strings were split into fragments at the scanner's length cap, so they appear as several shorter strings."
+  ]
+}

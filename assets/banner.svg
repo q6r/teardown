@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="teardown — Static triage for binaries and apps. Every finding ships its evidence and its limits.">
+<title>teardown</title><desc>Static triage for binaries and apps. Every finding ships its evidence and its limits.</desc>
+<defs>
+<radialGradient id="ga"><stop offset="0" stop-color="#d8dade" stop-opacity=".22"/><stop offset="1" stop-color="#d8dade" stop-opacity="0"/></radialGradient>
+<radialGradient id="gb"><stop offset="0" stop-color="#6f76e6" stop-opacity=".5"/><stop offset="1" stop-color="#6f76e6" stop-opacity="0"/></radialGradient>
+<linearGradient id="tg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="640" y2="0" spreadMethod="reflect">
+<stop offset="0" stop-color="#e4e6ea"/><stop offset=".5" stop-color="#ffffff"/><stop offset=".8" stop-color="#b9bef7"/><stop offset="1" stop-color="#e4e6ea"/>
+<animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="-320 0" dur="9s" repeatCount="indefinite"/></linearGradient>
+<clipPath id="card"><rect width="1280" height="320" rx="24"/></clipPath>
+<clipPath id="typeclip"><rect x="744" y="126" width="0" height="30"><animate attributeName="width" from="0" to="393" begin="1s" dur="2.4s" fill="freeze" calcMode="linear"/></rect></clipPath>
+</defs>
+<style>
+text{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.title{font-weight:700;letter-spacing:-.04em}
+.tag{font-size:21px;fill:#989aa3;font-weight:400}
+.crumb{font-size:12px;fill:#989aa3}.chev{fill:#858791}.cur{fill:#d8dade;font-weight:500}
+.kbd{font-size:11px;fill:#989aa3}
+.seg{font-size:12px;font-weight:500;fill:#989aa3}.seg.on{fill:#0b0b0e}
+.pillt{font-size:12px;font-weight:500;fill:#989aa3}
+.tt{font-size:12.5px;fill:#858791;font-weight:500}
+.mono{font-family:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;font-size:14.5px}
+.acc{fill:#6f76e6;font-weight:700}.cmd{fill:#d8dade}.out{fill:#989aa3}
+.rise{opacity:0;animation:rise .8s cubic-bezier(.22,1,.36,1) forwards}
+.line{opacity:0;animation:rise .6s cubic-bezier(.22,1,.36,1) forwards}
+.blink{animation:blink 1.05s steps(1) infinite}
+.glow{animation:drift 16s ease-in-out infinite alternate}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes blink{50%{opacity:0}}
+@keyframes drift{from{transform:translateX(-36px)}to{transform:translateX(36px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.rise,.line{opacity:1}}
+</style>
+<g clip-path="url(#card)">
+<rect width="1280" height="320" fill="#0c0c10"/>
+<g class="glow"><ellipse cx="717" cy="-34" rx="690" ry="197" fill="url(#ga)"/><ellipse cx="1216" cy="-29" rx="512" ry="178" fill="url(#gb)"/></g>
+<rect x="0" y="0" width="64" height="320" fill="#0c0c10"/><rect x="63.5" y="0" width="1" height="320" fill="#d8dade" fill-opacity=".09"/>
+<rect x="12" y="12" width="40" height="40" rx="12" fill="#d8dade"/>
+<g fill="none" stroke="#0b0b0e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M32 22 L42 41 H22 Z"/><path d="M32 22 V41"/></g>
+<g transform="translate(12 76)"><rect width="40" height="40" rx="12" fill="#d8dade" fill-opacity=".09"/><g fill="none" stroke="#d8dade" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 18 L20 11 L29 18 V28 H11 Z"/></g></g>
+<g transform="translate(12 122)"><g fill="none" stroke="#989aa3" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 28 V19 M20 28 V13 M26 28 V22"/></g></g>
+<g transform="translate(12 168)"><g fill="none" stroke="#989aa3" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11 L29 16 L20 21 L11 16 Z"/><path d="M11 21 L20 26 L29 21"/></g></g>
+<g transform="translate(12 264)"><g fill="none" stroke="#989aa3" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 16 H25 M15 24 H25 M16 13 V27 M24 13 V27"/></g></g><text x="88" y="31" class="crumb">q6r<tspan dx="9" class="chev">›</tspan><tspan dx="9" class="cur">teardown</tspan></text>
+<g class="rise" style="animation-delay:.05s"><rect x="1004" y="9" width="232" height="34" rx="11" fill="#d8dade" fill-opacity=".05"/>
+<g fill="none" stroke="#989aa3" stroke-width="1.6" stroke-linecap="round"><circle cx="1025" cy="25.5" r="5"/><path d="M1029 29.5 L1032.5 33"/></g>
+<text x="1043" y="30" class="crumb">Search…</text>
+<rect x="1175" y="17" width="49" height="18" rx="6" fill="#d8dade" fill-opacity=".06"/><text x="1199.5" y="30" text-anchor="middle" class="kbd">Ctrl K</text></g><g class="rise" style="animation-delay:.12s"><rect x="88" y="68" width="514.4" height="36" rx="13" fill="#17171b" stroke="#d8dade" stroke-opacity=".09"/><rect x="91" y="71" width="215" height="30" rx="10" fill="#d8dade"/><text x="198.5" y="90" text-anchor="middle" class="seg on">never executes the target</text><text x="363.7" y="90" text-anchor="middle" class="seg">stdlib only</text><text x="510.4" y="90" text-anchor="middle" class="seg">CLI + HTTP API + MCP</text></g><g class="rise" style="animation-delay:.2s"><rect x="614.4" y="70" width="61.2" height="32" rx="11" fill="#d8dade" fill-opacity=".05" stroke="#d8dade" stroke-opacity=".09"/><circle cx="631.4" cy="86" r="5" fill="#00add8"/><text x="644.4" y="91" class="pillt">Go</text></g><text x="86" y="196" class="title rise" font-size="76" fill="url(#tg)" style="animation-delay:.25s">teardown</text><text x="88" y="234" class="tag rise" style="animation-delay:0.4s">Static triage for binaries and apps. Every</text><text x="88" y="262" class="tag rise" style="animation-delay:0.5s">finding ships its evidence and its limits.</text><g class="rise" style="animation-delay:.3s"><rect x="700" y="68" width="536" height="228" rx="16" fill="#121216" stroke="#d8dade" stroke-opacity=".1"/>
+<rect x="701" y="69" width="534" height="39" rx="15" fill="#d8dade" fill-opacity=".03"/><rect x="701" y="92" width="534" height="16" fill="#d8dade" fill-opacity=".03"/><rect x="700" y="108" width="536" height="1" fill="#d8dade" fill-opacity=".08"/>
+<circle cx="722" cy="88" r="6" fill="#e66767" fill-opacity=".8"/><circle cx="742" cy="88" r="6" fill="#c98500" fill-opacity=".8"/><circle cx="762" cy="88" r="6" fill="#1aa384" fill-opacity=".8"/>
+<text x="968" y="93" text-anchor="middle" class="tt">teardown · Go</text></g><text x="726" y="146" class="mono acc">$</text><g clip-path="url(#typeclip)"><text x="744" y="146" class="mono cmd">teardown analyze examples/samples/upx-like.exe</text></g>
+<rect id="cur" class="blink" x="744" y="132" width="8" height="18" rx="1.5" fill="#6f76e6"><animate attributeName="x" from="744" to="1133" begin="1s" dur="2.4s" fill="freeze" calcMode="linear"/></rect><text x="726" y="180" class="mono out line" style="animation-delay:3.7s" xml:space="preserve">PE32+ executable for Windows (x86-64, console)</text><text x="726" y="206" class="mono out line" style="animation-delay:4.15s" xml:space="preserve">RISK  ██████░░░░░░░░░░░░░░░░░░  27/100  MEDIUM</text><text x="726" y="232" class="mono out line" style="animation-delay:4.6000000000000005s" xml:space="preserve">[MEDIUM]   packing.upx  confidence high</text><text x="726" y="258" class="mono out line" style="animation-delay:5.050000000000001s" xml:space="preserve">[MEDIUM]   structure.rwx-section  confidence high</text><text x="726" y="284" class="mono out line" style="animation-delay:5.5s" xml:space="preserve">[LOW]      signature.unsigned  confidence high</text>
+</g>
+<rect x=".5" y=".5" width="1279" height="319" rx="24" fill="none" stroke="#d8dade" stroke-opacity=".1"/>
+</svg>

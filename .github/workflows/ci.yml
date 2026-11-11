@@ -1,0 +1,123 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, go ${{ matrix.go }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ["1.24.x", "stable"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
+      - name: Build
+        run: go build ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Format check
+        if: runner.os == 'Linux'
+        shell: bash
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - name: No third-party modules
+        if: runner.os == 'Linux'
+        shell: bash
+        run: test -z "$(go list -m all | tail -n +2)" || { go list -m all; echo "go.mod must not require anything"; exit 1; }
+      # One package at a time: a few parser tests assert wall-clock budgets (for example "no input takes
+      # longer than a second"), and the race detector stretches them when packages compete for the CPU.
+      - name: Test (race detector)
+        run: go test -race -count=1 -p 1 ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+  dashboard:
+    name: dashboard assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      # The embedded dashboard must contain index.html and every local file it references, work under
+      # the strict CSP and build no markup from data; the HTML report must escape hostile input.
+      - name: Embedded asset check
+        run: go test -count=1 ./web/... ./internal/render/...
+      - name: Syntax-check the dashboard scripts
+        run: |
+          for f in web/app.js web/report-view.js web/report-boot.js; do node --check "$f"; done
+      - name: Export an HTML report
+        run: |
+          go run ./cmd/teardown analyze examples/samples/upx-like.exe --html "$RUNNER_TEMP/report.html"
+          grep -q 'Content-Security-Policy' "$RUNNER_TEMP/report.html"
+          grep -q 'id="report-data"' "$RUNNER_TEMP/report.html"
+
+  fuzz-smoke:
+    name: fuzz smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      - name: Run every fuzz target briefly
+        run: make fuzz FUZZTIME=10s
+
+  cross-build:
+    name: cross-compile (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [linux/amd64, linux/arm64, darwin/arm64, windows/amd64, windows/arm64, freebsd/amd64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      - name: Build
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          export GOOS="${{ matrix.target }}"; GOOS="${GOOS%/*}"
+          export GOARCH="${{ matrix.target }}"; GOARCH="${GOARCH#*/}"
+          go build -trimpath -o /dev/null ./cmd/teardown
+
+  vulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...

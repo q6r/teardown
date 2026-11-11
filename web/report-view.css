@@ -1,0 +1,162 @@
+/* report-view.css: styles of the report page, shared by the dashboard and the single-file
+ * `teardown analyze --html` export. Tokens of the Aurora UI kit only: no raw colours, no fonts, no images. */
+
+.td-view { display: flex; flex-direction: column; gap: 16px; }
+
+/* page header */
+.td-head.a-pagehead { align-items: flex-start; margin-bottom: 2px; }
+.td-head__main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.td-title { margin: 0; overflow-wrap: anywhere; outline: none; }
+.td-meta { display: flex; flex-wrap: wrap; margin: 0; color: var(--ink-2); font-size: 13px; }
+.td-meta__sep { margin: 0 8px; color: var(--ink-3); }
+.td-tags { gap: 6px; }
+
+/* the facts of the file as pills in the sub bar: only the icon of a status pill carries the status colour */
+.td-pill .a-icon { color: var(--ink-3); }
+.td-pill[data-kind] { color: var(--ink-1); }
+.td-pill[data-kind='good'] .a-icon { color: var(--good); }
+.td-pill[data-kind='warn'] .a-icon { color: var(--warn); }
+.td-pill[data-kind='serious'] .a-icon { color: var(--serious); }
+.td-pill[data-kind='critical'] .a-icon { color: var(--critical); }
+
+/* first row: risk ring on the left, tiles and hashes on the right (one column, the ring beside its notes, below 1000px) */
+.td-top { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: clamp(12px, 1.4vw, 16px); align-items: stretch; }
+.td-right { display: flex; flex-direction: column; gap: clamp(12px, 1.4vw, 16px); min-width: 0; }
+.td-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: clamp(12px, 1.4vw, 16px); }
+.td-risk { height: 100%; }
+.td-risk .a-card__body { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.td-risk__ring { display: grid; flex: none; place-items: center; padding: 4px 0 0; }
+.td-risk__side { display: flex; flex-direction: column; align-self: stretch; gap: 12px; min-width: 0; }
+.td-risk__note { max-width: 30ch; margin: 0 auto; font-size: 12.5px; text-align: center; }
+@media (max-width: 1000px) {
+  .td-top { grid-template-columns: minmax(0, 1fr); }
+  .td-risk .a-card__body { flex-direction: row; justify-content: center; gap: 36px; }
+  .td-risk__side { flex: 0 1 340px; align-self: center; }
+  .td-risk__note { margin: 0; text-align: left; }
+}
+@media (max-width: 560px) {
+  .td-risk .a-card__body { flex-direction: column; gap: 12px; }
+  .td-risk__side { flex: none; align-self: stretch; }
+  .td-risk__note { margin: 0 auto; text-align: center; }
+}
+.td-hash { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.td-hash__value { color: var(--ink-1); font: 500 12.5px/1.4 var(--font-mono); overflow-wrap: anywhere; }
+.td-hash .a-btn { margin: -4px 0; }
+
+/* shared text blocks */
+.td-label { margin-bottom: 6px; color: var(--ink-3); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.td-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0 0 0 18px; color: var(--ink-2); font-size: 13px; }
+.td-list li { padding-left: 2px; overflow-wrap: anywhere; }
+.td-list li::marker { color: var(--ink-3); }
+.td-list--mono li { font: 500 12px/1.5 var(--font-mono); }
+.td-caption { margin: 8px 0 0; font-size: 12px; }
+.td-flush { min-width: 0; }
+
+/* findings */
+.td-filter { gap: 6px; margin-bottom: 12px; }
+.td-findings, .td-imports, .td-formats { display: flex; flex-direction: column; gap: 8px; }
+.td-findings .a-details + .a-details, .td-imports .a-details + .a-details, .td-formats .a-details + .a-details { margin-top: 0; }
+.td-imports .a-details > summary, .td-formats .a-details > summary { flex-wrap: wrap; }
+.td-findings .a-details > summary { align-items: flex-start; }
+.td-findings .a-details > summary::before { margin-top: 9px; }
+.td-findings .a-details > summary > span { flex: 1 1 auto; min-width: 0; }
+.td-finding__summary { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.td-finding__line { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.td-finding__title { overflow-wrap: anywhere; }
+.td-finding__meta { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+@media (min-width: 900px) {
+  /* wide screens: title on the left, id and confidence on the right of the same row */
+  .td-findings .a-details > summary { align-items: center; }
+  .td-findings .a-details > summary::before { margin-top: 0; }
+  .td-finding__summary { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; width: 100%; }
+  .td-finding__line { flex: 0 1 auto; min-width: 0; }
+  .td-finding__meta { flex: none; margin-left: auto; }
+}
+.td-tagrow { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.td-finding__body { max-width: 110ch; padding-top: 4px; }
+
+/* hardening: the checks side by side on a wide card */
+.td-checks { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 40px; margin: 12px 0 0; padding: 0; list-style: none; }
+.td-check { padding: 9px 0; border-top: 1px solid var(--line); }
+.td-check:first-child { padding-top: 0; border-top: 0; }
+@media (min-width: 900px) {
+  .td-checks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .td-check:nth-child(2) { padding-top: 0; border-top: 0; }
+}
+.td-check__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.td-check__label { font-size: 13px; font-weight: 500; }
+.td-check__detail { margin-top: 3px; font-size: 12px; overflow-wrap: anywhere; }
+
+/* tables inside a flush card line up with the title of the card (16px), not with the table's own padding */
+.td-view .a-card--flush .a-table th:first-child, .td-view .a-card--flush .a-table td:first-child { padding-left: 16px; }
+.td-view .a-card--flush .a-table th:last-child, .td-view .a-card--flush .a-table td:last-child { padding-right: 16px; }
+
+/* sections table */
+.td-secname { display: flex; flex-direction: column; gap: 4px; min-width: 170px; }
+.td-view .a-table th[data-align='right'], .td-view .a-table td[data-align='right'] { white-space: nowrap; }
+.td-secname__row { align-items: center; gap: 8px; }
+.td-reasons { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0 0 0 16px; color: var(--ink-3); font-size: 12px; font-weight: 400; }
+.td-ebar { display: flex; align-items: center; gap: 10px; }
+.td-ebar .a-meter { flex: 1 1 auto; min-width: 72px; }
+.td-ebar__n { width: 3.3em; color: var(--ink-2); text-align: right; }
+.td-perms { display: inline-flex; gap: 3px; }
+.td-perm { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink-3); font: 600 11px var(--font-mono); }
+.td-perm.is-on { border-color: var(--line-strong); background: var(--fill-strong); color: var(--ink-1); }
+.td-perm-cell { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* imports */
+.td-fns { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 6px; }
+.td-more, .td-fns .a-btn { align-self: center; font-size: 12px; }
+
+/* strings */
+.td-segwrap { margin-bottom: 18px; }
+.td-strtools { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.td-search { position: relative; width: 100%; max-width: 420px; }
+.td-search .a-icon { position: absolute; top: 50%; left: 11px; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.td-search .a-input { height: 32px; padding-left: 33px; }
+.td-strval { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.td-strval__text { font: 500 12.5px/1.5 var(--font-mono); overflow-wrap: anywhere; white-space: pre-wrap; }
+.td-redacted { gap: 5px; }
+.td-pager { padding: 10px 0 0; }
+.td-strtable { min-width: 0; }
+.td-subtable { padding-top: 6px; }
+@media (min-width: 1000px) {
+  .td-formats .a-kv { grid-template-columns: minmax(110px, max-content) minmax(0, 1fr) minmax(110px, max-content) minmax(0, 1fr); column-gap: 32px; }
+}
+
+/* the readable summary shown when scripting is off (single-file export) */
+.td-fallback { padding: 28px 0 48px; color: var(--ink-1); font-size: 14px; line-height: 1.55; }
+.td-fallback h1, .td-fallback h2, .td-fallback h3 { margin: 22px 0 8px; line-height: 1.2; }
+.td-fallback table { width: 100%; border-collapse: collapse; }
+.td-fallback th, .td-fallback td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.td-fallback code { font-family: var(--font-mono); overflow-wrap: anywhere; }
+.td-fallback .td-sev { font-weight: 600; text-transform: uppercase; }
+
+/* the sub bar keeps the facts that matter on a narrow screen: the risk pill stays, size and type go (the header has them) */
+@media (max-width: 980px) {
+  .td-pill--minor { display: none; }
+}
+@media (max-width: 760px) {
+  .td-pill { display: none; }
+}
+@media (max-width: 560px) {
+  /* a SHA-1 (40 characters) stays on one line on a phone */
+  .td-hash__value { font-size: 11.5px; }
+  /* the breadcrumbs of a phone drop the app name and let only the current page shrink (a long file name gets the ellipsis) */
+  .a-crumbs > :first-child:not(:last-child), .a-crumbs > :first-child:not(:last-child) + svg { display: none; }
+  .a-crumbs > :not(strong) { flex: none; }
+}
+@media (max-width: 900px) {
+  /* a wrapped line must not start with a separator */
+  .td-meta { column-gap: 14px; row-gap: 2px; }
+  .td-meta__sep { display: none; }
+}
+@media (max-width: 640px) {
+  /* strings: one card per row instead of a table that scrolls sideways */
+  .td-strtable .a-table thead { display: none; }
+  .td-strtable .a-table, .td-strtable .a-table tbody { display: block; }
+  .td-strtable .a-table tr { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 6px 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .td-strtable .a-table td { display: block; width: auto; padding: 0; border: 0; }
+  .td-strtable .a-table td[data-align] { text-align: left; }
+  .td-strtable .a-table td:nth-child(4) { grid-column: 1 / -1; }
+}

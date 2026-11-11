@@ -1,0 +1,542 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "teardown HTTP API",
+    "version": "1.0.0",
+    "summary": "Static triage of binaries and apps over HTTP.",
+    "description": "Upload a file, get back a teardown.report/v1 report. The server never executes what it analyses. It is unauthenticated by design and listens on 127.0.0.1 by default; requests whose Host header is not a loopback name are refused with 403, cross-origin POST/DELETE requests are refused with 403, and no CORS headers are ever sent. Every non-2xx response uses the Error envelope. Methods other than those listed for a path answer 405 with an Allow header; unknown /api paths answer 404.",
+    "license": { "name": "MIT", "identifier": "MIT" }
+  },
+  "servers": [
+    { "url": "http://127.0.0.1:7777", "description": "Default local address of `teardown serve`." }
+  ],
+  "tags": [
+    { "name": "system", "description": "Health and API description." },
+    { "name": "analysis", "description": "Upload files and read stored reports." },
+    { "name": "events", "description": "Live notifications." },
+    { "name": "dashboard", "description": "The embedded web dashboard." }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "healthCheck",
+        "tags": ["system"],
+        "summary": "Liveness probe.",
+        "responses": {
+          "200": {
+            "description": "The server is up.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/analyze": {
+      "post": {
+        "operationId": "analyzeFile",
+        "tags": ["analysis"],
+        "summary": "Upload a file and analyse it.",
+        "description": "Send exactly one multipart/form-data part, named `file`. The part is streamed to a private temporary directory under a random name, analysed, and deleted as soon as the analysis finishes. The client-supplied file name is only used as a display label after sanitising (path components, control characters and bidirectional overrides removed, at most 255 bytes). When all analysis slots are busy the request waits up to 30 seconds for one.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "contentMediaType": "application/octet-stream",
+                    "description": "The file to analyse (up to the server's --max-upload, 256 MiB by default)."
+                  }
+                }
+              },
+              "encoding": { "file": { "contentType": "application/octet-stream" } }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The analysis finished and the report was stored.",
+            "headers": {
+              "Location": {
+                "description": "Relative URL of the stored report.",
+                "schema": { "type": "string", "examples": ["/api/analyses/an_3f9a1c07d2be"] }
+              }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AnalyzeResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "500": { "$ref": "#/components/responses/Internal" },
+          "503": { "$ref": "#/components/responses/Busy" },
+          "504": { "$ref": "#/components/responses/AnalysisTimeout" }
+        }
+      }
+    },
+    "/api/analyses": {
+      "get": {
+        "operationId": "listAnalyses",
+        "tags": ["analysis"],
+        "summary": "List the stored analyses, newest first.",
+        "description": "Reports live in an in-memory ring (50 by default, `--keep`); the oldest is evicted when it is full and everything is lost on restart.",
+        "responses": {
+          "200": {
+            "description": "Summaries of the stored analyses (an empty array when there are none).",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/AnalysisSummary" } }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/analyses/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/AnalysisId" }],
+      "get": {
+        "operationId": "getAnalysis",
+        "tags": ["analysis"],
+        "summary": "Fetch a stored report.",
+        "responses": {
+          "200": {
+            "description": "The full teardown.report/v1 report.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Report" } } }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAnalysis",
+        "tags": ["analysis"],
+        "summary": "Delete a stored report.",
+        "responses": {
+          "204": { "description": "Deleted." },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/analyses/{id}/strings": {
+      "parameters": [{ "$ref": "#/components/parameters/AnalysisId" }],
+      "get": {
+        "operationId": "listAnalysisStrings",
+        "tags": ["analysis"],
+        "summary": "Page through the strings kept in a report.",
+        "description": "Filters and paginates `strings.items` of the stored report. Values of secrets are already redacted in the report and stay redacted here. The order is the report's order (by file offset).",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "style": "form",
+            "explode": false,
+            "description": "Comma-separated list of categories to keep (the parameter may also be repeated).",
+            "schema": { "type": "array", "items": { "$ref": "#/components/schemas/StringCategory" } }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Case-insensitive substring to look for in the (redacted) string values, at most 256 bytes.",
+            "schema": { "type": "string", "maxLength": 256 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 100 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Number of matches to skip.",
+            "schema": { "type": "integer", "minimum": 0, "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of matching strings.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StringsPage" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/events": {
+      "get": {
+        "operationId": "streamEvents",
+        "tags": ["events"],
+        "summary": "Server-sent events about analyses.",
+        "description": "A text/event-stream. Each event is `event: <name>` followed by one `data: <json>` line and a blank line; `: keep-alive` comment frames arrive every 15 seconds. A client that cannot keep up (more than 32 queued events) is disconnected and may reconnect. Event payloads are described by the x-events extension.",
+        "responses": {
+          "200": {
+            "description": "The event stream.",
+            "content": { "text/event-stream": { "schema": { "type": "string" } } }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        },
+        "x-events": {
+          "analysis.started": { "$ref": "#/components/schemas/EventStarted" },
+          "analysis.completed": { "$ref": "#/components/schemas/EventCompleted" },
+          "analysis.failed": { "$ref": "#/components/schemas/EventFailed" }
+        }
+      }
+    },
+    "/api/openapi.json": {
+      "get": {
+        "operationId": "getOpenAPI",
+        "tags": ["system"],
+        "summary": "This document.",
+        "responses": {
+          "200": {
+            "description": "The OpenAPI 3.1 description of the API.",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "operationId": "getDashboard",
+        "tags": ["dashboard"],
+        "summary": "The embedded dashboard and its static files.",
+        "description": "`/` serves index.html; other paths serve the file of that name from the embedded dashboard (never a directory listing). Responses carry `Cache-Control: no-cache`.",
+        "responses": {
+          "200": {
+            "description": "A dashboard file.",
+            "content": { "text/html": { "schema": { "type": "string" } } }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "AnalysisId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Analysis identifier returned by POST /api/analyze.",
+        "schema": { "type": "string", "pattern": "^an_[0-9a-f]{12}$", "examples": ["an_3f9a1c07d2be"] }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "The request is malformed (codes: bad_multipart, missing_file, unexpected_part, invalid_parameter).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Forbidden": {
+        "description": "Refused by the DNS-rebinding or CSRF guard (codes: forbidden_host, forbidden_origin).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "NotFound": {
+        "description": "No such analysis, file or endpoint (code: not_found).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "PayloadTooLarge": {
+        "description": "The upload exceeds the server's limit (code: too_large).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "UnsupportedMediaType": {
+        "description": "The request is not multipart/form-data (code: unsupported_media_type).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Internal": {
+        "description": "The server failed (codes: internal_error, analysis_failed).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Busy": {
+        "description": "The server is at capacity or stopping (code: busy): every analysis slot stayed occupied for 30 seconds, the upload queue (64) or the number of event streams (64) is full, or the server is shutting down.",
+        "headers": {
+          "Retry-After": { "description": "Seconds to wait before retrying.", "schema": { "type": "integer" } }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "AnalysisTimeout": {
+        "description": "The analysis exceeded its time limit (code: analysis_timeout).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "description": "Envelope of every non-2xx JSON response.",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "bad_multipart",
+                  "missing_file",
+                  "unexpected_part",
+                  "invalid_parameter",
+                  "forbidden_host",
+                  "forbidden_origin",
+                  "not_found",
+                  "method_not_allowed",
+                  "too_large",
+                  "unsupported_media_type",
+                  "internal_error",
+                  "analysis_failed",
+                  "busy",
+                  "analysis_timeout"
+                ]
+              },
+              "message": { "type": "string", "description": "Human-readable, actionable explanation." }
+            }
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "required": ["status", "version"],
+        "properties": {
+          "status": { "type": "string", "const": "ok" },
+          "version": { "type": "string", "examples": ["0.1.0"] }
+        }
+      },
+      "AnalyzeResponse": {
+        "type": "object",
+        "required": ["id", "report"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^an_[0-9a-f]{12}$" },
+          "report": { "$ref": "#/components/schemas/Report" }
+        }
+      },
+      "RiskBrief": {
+        "type": "object",
+        "required": ["score", "label"],
+        "properties": {
+          "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "label": { "type": "string", "enum": ["low", "medium", "high", "critical"] }
+        }
+      },
+      "AnalysisSummary": {
+        "type": "object",
+        "required": ["id", "name", "size", "type", "typeLabel", "risk", "createdAt"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^an_[0-9a-f]{12}$" },
+          "name": { "type": "string", "description": "Sanitised display name of the upload." },
+          "size": { "type": "integer", "minimum": 0, "description": "Size in bytes." },
+          "type": { "type": "string", "description": "Detected content type id, e.g. pe, elf, apk." },
+          "typeLabel": { "type": "string" },
+          "risk": { "$ref": "#/components/schemas/RiskBrief" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "StringCategory": {
+        "type": "string",
+        "enum": ["secret", "url", "email", "ip", "registry", "command", "useragent", "path", "domain", "api", "base64", "hex", "plain"]
+      },
+      "StringsPage": {
+        "type": "object",
+        "required": ["total", "offset", "limit", "items"],
+        "properties": {
+          "total": { "type": "integer", "minimum": 0, "description": "Number of strings matching the filters." },
+          "offset": { "type": "integer", "minimum": 0 },
+          "limit": { "type": "integer", "minimum": 1 },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/StringItem" } }
+        }
+      },
+      "EventStarted": {
+        "type": "object",
+        "description": "Payload of `analysis.started`: the upload was received and analysis begins.",
+        "required": ["id", "name", "size"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "size": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "EventCompleted": {
+        "description": "Payload of `analysis.completed`: an AnalysisSummary plus the analysis duration.",
+        "allOf": [
+          { "$ref": "#/components/schemas/AnalysisSummary" },
+          {
+            "type": "object",
+            "required": ["durationMs"],
+            "properties": { "durationMs": { "type": "integer", "minimum": 0 } }
+          }
+        ]
+      },
+      "EventFailed": {
+        "type": "object",
+        "description": "Payload of `analysis.failed`.",
+        "required": ["id", "name", "error"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "error": { "type": "string", "description": "Short reason without server paths." }
+        }
+      },
+      "Report": {
+        "type": "object",
+        "description": "The teardown.report/v1 document. Keys are camelCase and additive-only; the full field reference is docs/api/schema.md.",
+        "required": ["schema", "tool", "generatedAt", "durationMs", "file", "type", "hashes", "entropy", "sections", "imports", "exports", "strings", "hardening", "details", "findings", "risk", "limitations"],
+        "properties": {
+          "schema": { "type": "string", "const": "teardown.report/v1" },
+          "tool": { "$ref": "#/components/schemas/Tool" },
+          "generatedAt": { "type": "string", "format": "date-time" },
+          "durationMs": { "type": "integer", "minimum": 0 },
+          "file": { "$ref": "#/components/schemas/File" },
+          "type": { "$ref": "#/components/schemas/ContentType" },
+          "hashes": { "$ref": "#/components/schemas/Hashes" },
+          "entropy": { "$ref": "#/components/schemas/Entropy" },
+          "sections": { "type": "array", "items": { "$ref": "#/components/schemas/Section" } },
+          "imports": { "type": "array", "items": { "$ref": "#/components/schemas/Import" } },
+          "exports": { "type": "array", "items": { "type": "string" } },
+          "strings": { "$ref": "#/components/schemas/Strings" },
+          "hardening": { "type": "array", "items": { "$ref": "#/components/schemas/Hardening" } },
+          "details": {
+            "type": "object",
+            "description": "Format-specific facts keyed by format (pe, elf, macho, go, archive, asar, wasm, gguf). Free-form but documented per key.",
+            "additionalProperties": true
+          },
+          "findings": { "type": "array", "items": { "$ref": "#/components/schemas/Finding" } },
+          "risk": { "$ref": "#/components/schemas/Risk" },
+          "limitations": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "Tool": {
+        "type": "object",
+        "required": ["name", "version"],
+        "properties": { "name": { "type": "string" }, "version": { "type": "string" } }
+      },
+      "File": {
+        "type": "object",
+        "required": ["name", "size"],
+        "properties": {
+          "name": { "type": "string" },
+          "size": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "ContentType": {
+        "type": "object",
+        "required": ["id", "family", "label", "mime", "confidence", "tags"],
+        "properties": {
+          "id": { "type": "string" },
+          "family": { "type": "string" },
+          "label": { "type": "string" },
+          "mime": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["low", "medium", "high"] },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "Hashes": {
+        "type": "object",
+        "required": ["md5", "sha1", "sha256", "imphash"],
+        "properties": {
+          "md5": { "type": "string" },
+          "sha1": { "type": "string" },
+          "sha256": { "type": "string" },
+          "imphash": { "type": "string", "description": "PE import hash; empty when not applicable." }
+        }
+      },
+      "Entropy": {
+        "type": "object",
+        "required": ["overall", "windowSize", "windows"],
+        "properties": {
+          "overall": { "type": "number", "minimum": 0, "maximum": 8 },
+          "windowSize": { "type": "integer", "minimum": 0 },
+          "windows": { "type": "array", "maxItems": 512, "items": { "type": "number", "minimum": 0, "maximum": 8 } }
+        }
+      },
+      "Section": {
+        "type": "object",
+        "required": ["name", "virtualSize", "rawSize", "offset", "entropy", "flags", "suspicious"],
+        "properties": {
+          "name": { "type": "string" },
+          "virtualSize": { "type": "integer", "minimum": 0 },
+          "rawSize": { "type": "integer", "minimum": 0 },
+          "offset": { "type": "integer", "minimum": 0 },
+          "entropy": { "type": "number", "minimum": 0, "maximum": 8 },
+          "flags": { "type": "array", "items": { "type": "string", "enum": ["R", "W", "X"] } },
+          "suspicious": { "type": "boolean" },
+          "reasons": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "Import": {
+        "type": "object",
+        "required": ["library", "count", "functions"],
+        "properties": {
+          "library": { "type": "string" },
+          "count": { "type": "integer", "minimum": 0 },
+          "functions": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "Strings": {
+        "type": "object",
+        "required": ["total", "minLength", "truncated", "byCategory", "items"],
+        "properties": {
+          "total": { "type": "integer", "minimum": 0 },
+          "minLength": { "type": "integer", "minimum": 0 },
+          "truncated": { "type": "boolean" },
+          "byCategory": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/StringItem" } }
+        }
+      },
+      "StringItem": {
+        "type": "object",
+        "required": ["value", "offset", "encoding", "category", "redacted"],
+        "properties": {
+          "value": { "type": "string", "description": "The string; secrets are redacted to their first 4 characters plus the length." },
+          "offset": { "type": "integer", "minimum": 0 },
+          "encoding": { "type": "string", "enum": ["ascii", "utf16le"] },
+          "category": { "$ref": "#/components/schemas/StringCategory" },
+          "redacted": { "type": "boolean" },
+          "kind": { "type": "string", "description": "Refines the category when known, e.g. aws-access-key-id." }
+        }
+      },
+      "Hardening": {
+        "type": "object",
+        "required": ["id", "label", "status", "detail"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "status": { "type": "string", "enum": ["enabled", "disabled", "unknown", "n/a"] },
+          "detail": { "type": "string" }
+        }
+      },
+      "Finding": {
+        "type": "object",
+        "required": ["id", "title", "severity", "category", "confidence", "evidence", "limitations"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "severity": { "type": "string", "enum": ["info", "low", "medium", "high", "critical"] },
+          "category": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["low", "medium", "high"] },
+          "evidence": { "type": "array", "items": { "type": "string" } },
+          "limitations": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "Risk": {
+        "type": "object",
+        "required": ["score", "label", "basis"],
+        "properties": {
+          "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "label": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+          "basis": { "type": "array", "items": { "type": "string" }, "description": "How the score was computed, line by line. A triage aid, not a verdict." }
+        }
+      }
+    }
+  }
+}
