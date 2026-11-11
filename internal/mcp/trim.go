@@ -187,6 +187,98 @@ func capDetailLists(n int) trimStep {
 	}
 }
 
+// capCodeLines keeps at most n lines of every code block of every finding. A
+// block that is cut keeps the window around its first highlighted line (the top
+// of the block when no line is highlighted), starts at the first line kept and
+// says it is truncated, so the line a finding is about stays in sight.
+func capCodeLines(n int) trimStep {
+	return func(root *node) []trimNote {
+		findings := root.at("findings")
+		if findings == nil || findings.kind != kindArray {
+			return nil
+		}
+		var kept, total int
+		changed := false
+		for _, fd := range findings.kids {
+			code := fd.child("code")
+			if code == nil || code.kind != kindArray {
+				continue
+			}
+			for _, block := range code.kids {
+				k, t, c := capBlockLines(block, n)
+				kept, total, changed = kept+k, total+t, changed || c
+			}
+		}
+		if !changed {
+			return nil
+		}
+		return []trimNote{{Path: "findings[].code[].lines", Kept: kept, Total: total}}
+	}
+}
+
+// capBlockLines keeps at most n lines of one code block (see capCodeLines). It
+// returns the lines kept, the lines the block had and whether it was cut.
+func capBlockLines(block *node, n int) (kept, total int, changed bool) {
+	lines := block.child("lines")
+	if lines == nil || lines.kind != kindArray {
+		return 0, 0, false
+	}
+	count := len(lines.kids)
+	if count <= n {
+		return count, count, false
+	}
+	start := windowStart(lines.kids, n)
+	lines.kids = lines.kids[start : start+n]
+	block.setKey("truncated", boolNode(true))
+	// The block now begins at the first line that was kept.
+	first := lines.kids[0]
+	if v := first.child("offset"); v != nil {
+		block.setKey("offset", &node{kind: kindScalar, raw: v.raw})
+	}
+	if v := first.child("address"); v != nil {
+		block.setKey("address", &node{kind: kindScalar, raw: v.raw})
+	} else {
+		block.delKey("address")
+	}
+	return n, count, true
+}
+
+// capSiteLines keeps at most n lines of the code block of every call site of a
+// find_calls result, around the line of the call.
+func capSiteLines(n int) trimStep {
+	return func(root *node) []trimNote {
+		sites := root.at("sites")
+		if sites == nil || sites.kind != kindArray {
+			return nil
+		}
+		var kept, total int
+		changed := false
+		for _, site := range sites.kids {
+			if block := site.child("code"); block != nil {
+				k, t, c := capBlockLines(block, n)
+				kept, total, changed = kept+k, total+t, changed || c
+			}
+		}
+		if !changed {
+			return nil
+		}
+		return []trimNote{{Path: "sites[].code.lines", Kept: kept, Total: total}}
+	}
+}
+
+// windowStart returns the index of the first line of a window of n lines that
+// keeps the first highlighted line as near its middle as the bounds allow.
+func windowStart(lines []*node, n int) int {
+	first := 0
+	for i, l := range lines {
+		if h := l.child("highlight"); h != nil && string(h.raw) == "true" {
+			first = i
+			break
+		}
+	}
+	return max(0, min(first-n/2, len(lines)-n))
+}
+
 // capStringsTop keeps the n most interesting items of strings.items: secrets
 // first, then the categories in report.StringCategories order, with file order
 // preserved inside the result.

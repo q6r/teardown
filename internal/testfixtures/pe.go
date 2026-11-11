@@ -143,6 +143,13 @@ type PEOptions struct {
 	SecurityCookie bool
 	// Sections are extra sections placed after .data.
 	Sections []PESection
+	// Calls adds a small x86-64 stub to .text that calls the listed imports the way
+	// compilers do: a stack frame, the arguments set up with mov, xor and lea,
+	// then a call through the import address table slot (or through a thunk). The
+	// stub starts at offset 0x10, behind the entry point's "xor eax, eax; ret", so
+	// the image does nothing when started: the stub is dead code that is only meant
+	// to be read. It works on a 64-bit image only.
+	Calls []PECall
 }
 
 // PEDataDirectoryOffset returns the file offset of data directory entry index
@@ -248,10 +255,11 @@ type peDir struct{ rva, size uint32 }
 
 // peBlob accumulates the .rdata section, which hosts every directory structure.
 type peBlob struct {
-	base uint32 // RVA of the blob
-	raw  uint32 // file offset of the blob
-	buf  []byte
-	dirs [16]peDir
+	base  uint32 // RVA of the blob
+	raw   uint32 // file offset of the blob
+	buf   []byte
+	dirs  [16]peDir
+	slots []peSlot // the address table slots of the regular imports
 }
 
 func (b *peBlob) here() uint32 { return b.base + uint32(len(b.buf)) }
@@ -338,11 +346,18 @@ func (b *peBlob) thunks(entries []uint64, pe64 bool) {
 func (b *peBlob) importTable(libs []PEImport, pe64 bool) peDir {
 	size := (len(libs) + 1) * 20
 	desc := b.reserve(size)
+	width := uint32(4)
+	if pe64 {
+		width = 8
+	}
 	for i, lib := range libs {
 		nameRVA, intRVA, iatRVA := b.library(lib, pe64)
 		b.set32(desc+i*20, intRVA)
 		b.set32(desc+i*20+12, nameRVA)
 		b.set32(desc+i*20+16, iatRVA)
+		for j, fn := range lib.Functions {
+			b.slots = append(b.slots, peSlot{library: lib.Library, function: fn, rva: iatRVA + uint32(j)*width})
+		}
 	}
 	return peDir{b.base + uint32(desc), uint32(size)}
 }
@@ -608,13 +623,22 @@ func PE(o PEOptions) []byte {
 	}
 	sizeOfHeaders := peAlign(PEOffset+24+optSize+nSec*peSecHdrSize, peFileAlign)
 
-	blob := &peBlob{base: peRDataVA, raw: uint32(sizeOfHeaders + peTextSize)}
+	text := peCode()
+	var stub *peStub
+	if len(o.Calls) > 0 {
+		if !c.pe64 {
+			panic("testfixtures: PEOptions.Calls emits x86-64 code and needs a 64-bit image")
+		}
+		stub = peAssemble(o.Calls)
+		text = stub.code
+	}
+	blob := &peBlob{base: peRDataVA, raw: uint32(sizeOfHeaders + len(text))}
 	blob.build(c)
 
 	data := make([]byte, 32)
 	copy(data, "teardown-fixture")
 	secs := []peSec{
-		{name: ".text", data: peCode(), chars: PESectionCode},
+		{name: ".text", data: text, chars: PESectionCode},
 		{name: ".rdata", data: blob.buf, chars: PESectionRData},
 		{name: ".data", data: data, chars: PESectionData},
 	}
@@ -658,6 +682,9 @@ func PE(o PEOptions) []byte {
 		}
 	}
 	sizeOfImage := va
+	if stub != nil {
+		stub.patch(peTextVA, secs[2].va, peSlotLookup(blob.slots)) // the code is secs[0].data: patched in place
+	}
 	end := int(rawPtr)
 
 	var symPtr, nSyms uint32
@@ -699,7 +726,7 @@ func PE(o PEOptions) []byte {
 		le.PutUint16(opt, 0x10b)
 	}
 	opt[2], opt[3] = 14, 29
-	le.PutUint32(opt[4:], peTextSize)
+	le.PutUint32(opt[4:], uint32(len(text)))
 	le.PutUint32(opt[8:], uint32(peAlign(len(blob.buf), peFileAlign)+32))
 	le.PutUint32(opt[16:], peTextVA)
 	le.PutUint32(opt[20:], peTextVA)

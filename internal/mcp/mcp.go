@@ -4,9 +4,9 @@
 // The wire format is newline-delimited JSON-RPC 2.0: one message per line on the
 // input, one message per line on the output. Standard output carries protocol
 // messages only; diagnostics go to Config.Stderr. The server negotiates the
-// protocol versions 2024-11-05, 2025-03-26 and 2025-06-18 and offers five
-// read-only tools (analyze_file, list_strings, hash_file, entropy_profile and
-// diff_files).
+// protocol versions 2024-11-05, 2025-03-26 and 2025-06-18 and offers eight
+// read-only tools (analyze_file, list_strings, hash_file, entropy_profile,
+// diff_files, disassemble, find_calls and read_bytes).
 //
 // Security model: files are readable only inside the configured root
 // directories. Every access goes through os.Root, so ".." escapes and symbolic

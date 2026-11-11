@@ -47,12 +47,13 @@ type rule struct {
 
 // input is the read-only view of a report that rules work on.
 type input struct {
-	rep *report.Report
-	imp importIndex
+	rep  *report.Report
+	imp  importIndex
+	code CodeSource // the code behind imported functions, nil when there is none
 }
 
-func newInput(rep *report.Report) *input {
-	return &input{rep: rep, imp: indexImports(rep.Imports)}
+func newInput(rep *report.Report, code CodeSource) *input {
+	return &input{rep: rep, imp: indexImports(rep.Imports), code: code}
 }
 
 // detail decodes rep.Details[key] into T through its JSON form.
@@ -74,9 +75,21 @@ func detail[T any](rep *report.Report, key string) (T, bool) {
 }
 
 // Evaluate runs every rule against rep without modifying it and returns the
-// merged, sorted findings together with the risk score.
-func Evaluate(rep *report.Report) Result {
-	in := newInput(rep)
+// merged, sorted findings together with the risk score. The findings carry no
+// code: see [EvaluateWith].
+func Evaluate(rep *report.Report) Result { return EvaluateWith(rep, Options{}) }
+
+// Options carries what the rules cannot read from the report.
+type Options struct {
+	// Code supplies the code behind imported functions. When set, the import
+	// rules attach the call sites of the functions that triggered a finding to
+	// it (see [CodeSource]); nil attaches none.
+	Code CodeSource
+}
+
+// EvaluateWith is [Evaluate] with the extra inputs of opts.
+func EvaluateWith(rep *report.Report, opts Options) Result {
+	in := newInput(rep, opts.Code)
 	findings := slices.Clone(rep.Findings)
 	for _, r := range registry() {
 		findings = append(findings, r.run(in)...)

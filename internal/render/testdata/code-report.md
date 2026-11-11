@@ -1,0 +1,231 @@
+# teardown report: `dropper.exe`
+
+> Static analysis only; the file was never executed.
+
+| | |
+|---|---|
+| Type | PE32+ executable for Windows (x86-64, console) (high confidence) |
+| Tags | `64-bit` `exe` `x86-64` |
+| Size | 37.5 KiB (38,400 bytes) |
+| Risk | **58/100 high** |
+| Entropy | 5.82 of 8.00 bits per byte |
+| Generated | 2026-11-15 09:30:00Z by teardown 0.2.0 in 18 ms |
+
+## Findings (4)
+
+### [HIGH] `imports.process-injection`: Imports cover the full process-injection chain (allocate, write, execute)
+
+Confidence: **medium** · category: imports
+
+Evidence:
+
+- allocate or map memory in another process: KERNEL32.dll!VirtualAllocEx
+- write to another process: KERNEL32.dll!WriteProcessMemory
+- start or hijack a thread there: KERNEL32.dll!CreateRemoteThread
+
+Code:
+
+#### Code: Call site of KERNEL32.dll!VirtualAllocEx
+
+.text · 0x14000101c · x86-64
+
+```asm
+  0x14000101c  48 8b 4d f8              mov rcx, qword ptr [rbp-0x8]
+  0x140001020  31 d2                    xor edx, edx
+  0x140001022  41 b8 00 10 00 00        mov r8d, 0x1000
+  0x140001028  41 b9 00 30 00 00        mov r9d, 0x3000
+  0x14000102e  c7 44 24 20 40 00 00 00  mov dword ptr [rsp+0x20], 0x40
+> 0x140001036  ff 15 c4 1f 00 00        call qword ptr [rip+0x1fc4]  ; KERNEL32.dll!VirtualAllocEx
+  0x14000103c  48 89 45 f0              mov qword ptr [rbp-0x10], rax
+  0x140001040  48 83 7d f0 00           cmp qword ptr [rbp-0x10], 0
+  0x140001045  74 3b                    je 0x140001082
+```
+
+#### Code: Call site of KERNEL32.dll!WriteProcessMemory
+
+.text · 0x140001047 · x86-64
+
+```asm
+  0x140001047  48 8b 4d f8                 mov rcx, qword ptr [rbp-0x8]
+  0x14000104b  48 8b 55 f0                 mov rdx, qword ptr [rbp-0x10]
+  0x14000104f  4c 8d 05 aa 2f 00 00        lea r8, [rip+0x2faa]  ; 0x140004000 in .data
+  0x140001056  41 b9 00 02 00 00           mov r9d, 0x200
+  0x14000105c  48 c7 44 24 20 00 00 00 00  mov qword ptr [rsp+0x20], 0x0
+> 0x140001065  ff 15 9d 1f 00 00           call qword ptr [rip+0x1f9d]  ; KERNEL32.dll!WriteProcessMemory
+  0x14000106b  85 c0                       test eax, eax
+  0x14000106d  74 15                       je 0x140001084
+```
+
+#### Code: Call site of KERNEL32.dll!CreateRemoteThread
+
+.text · 0x14000106f · x86-64
+
+```asm
+  0x14000106f  48 8b 4d f8                 mov rcx, qword ptr [rbp-0x8]
+  0x140001073  31 d2                       xor edx, edx
+  0x140001075  45 31 c0                    xor r8d, r8d
+  0x140001078  4c 8b 4d f0                 mov r9, qword ptr [rbp-0x10]
+  0x14000107c  48 c7 44 24 20 00 00 00 00  mov qword ptr [rsp+0x20], 0x0
+> 0x140001085  ff 15 85 1f 00 00           call qword ptr [rip+0x1f85]  ; KERNEL32.dll!CreateRemoteThread
+  0x14000108b  48 85 c0                    test rax, rax
+  0x14000108e  74 0a                       je 0x14000109a
+```
+
+#### Code: Call site of KERNEL32.dll!OpenProcess
+
+.text · 0x140001000 · x86-64
+
+```asm
+  0x140001000  b9 ff ff 1f 00     mov ecx, 0x1fffff
+  0x140001005  31 d2              xor edx, edx
+  0x140001007  44 8b 45 fc        mov r8d, dword ptr [rbp-0x4]
+> 0x14000100b  ff 15 07 20 00 00  call qword ptr [rip+0x2007]  ; KERNEL32.dll!OpenProcess
+  0x140001011  48 89 45 f8        mov qword ptr [rbp-0x8], rax
+  0x140001015  48 83 7d f8 00     cmp qword ptr [rbp-0x8], 0
+  0x14000101a  74 6c              je 0x140001088
+```
+
+Limitations of the code shown:
+
+- x86 and x86-64 only: other instruction sets are not decoded.
+- A linear sweep: data inside a code section can be read as instructions, and one wrong byte shifts everything after it.
+- A view of the code, not a decompilation. Nothing was executed.
+
+Limitations:
+
+- API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools) imports the same functions.
+- Functions resolved at run time (GetProcAddress, dlsym) or hidden by a packer are not in the import table, so a missing cluster proves nothing either.
+
+### [MEDIUM] `indicators.network`: Hard-coded network indicators
+
+Confidence: **medium** · category: indicators
+
+Evidence:
+
+- url: http://203.0.113.7/gate.php
+
+Code:
+
+#### Code: Bytes around the URL at file offset 0x1a58
+
+.rdata · file offset 0x1a40
+
+```text
+  00001a40  00 00 00 00 00 00 00 00 55 73 65 72 2d 41 67 65  |........User-Age|
+> 00001a50  6e 74 3a 20 00 00 00 00 68 74 74 70 3a 2f 2f 32  |nt: ....http://2|
+  00001a60  30 33 2e 30 2e 31 31 33 2e 37 2f 67 61 74 65 2e  |03.0.113.7/gate.|
+  00001a70  70 68 70 00 00 00 00 00 50 4f 53 54 00 00 00 00  |php.....POST....|
+  00001a80  43 6f 6e 74 65 6e 74 2d 54 79 70 65 3a 20 61 70  |Content-Type: ap|
+```
+
+Limitations of the code shown:
+
+- A raw window over the file: the bytes are shown as they are and nothing says that any code uses them.
+
+Limitations:
+
+- A string in the file does not mean the program contacts it: it can be dead data, a placeholder or a documentation address.
+
+### [MEDIUM] `application.electron-risky-settings`: Bundled JavaScript mentions settings that widen the attack surface
+
+Confidence: **low** · category: application
+
+Evidence:
+
+- nodeIntegration: true (app/main.js)
+- contextIsolation: false (app/main.js)
+
+Code:
+
+#### Code: Window settings in the main process
+
+app/main.js
+
+```js
+  15 | const { app, BrowserWindow } = require('electron');
+  16 |
+  17 | function createWindow() {
+> 18 |   const win = new BrowserWindow({ webPreferences: { nodeIntegration: true, contextIsolation: false } });
+  19 |   win.loadURL('https://example.com/app');
+  20 |   return win;
+  21 | }
+```
+
+Limitations of the code shown:
+
+- Plain text lines taken from the packaged script: nothing was run or evaluated.
+
+Limitations:
+
+- The settings are read from text; other code can change them before a window opens.
+
+### [INFO] `hardening.no-cfg`: Control Flow Guard is not enabled
+
+Confidence: **high** · category: hardening
+
+Evidence:
+
+- GUARD\_CF is not set in the DLL characteristics
+
+Limitations:
+
+- A missing mitigation describes how hard the file is to exploit, not whether it is malicious.
+
+## Risk basis
+
+- +30  imports.process-injection (high, medium confidence)
+- +14  indicators.network (medium)
+- +14  application.electron-risky-settings (medium, low confidence)
+
+## Hashes
+
+| Algorithm | Digest |
+|---|---|
+| MD5 | `5f0e3a7c9b21d84e6a1f0c3d7b92e4a8` |
+| SHA-1 | `9c1185a5c5e9fc54612808977ee8f548b2258d31` |
+| SHA-256 | `3f2a9c7e41d0b85a6e13c97f2b40d8a15c6e9f0b7d3a2e8c14b95f60a7d1c3e2` |
+| Imphash | `8b1e5c4d2a7f9063e1b8d4c5a2f70e93` |
+
+## Hardening
+
+| Feature | Status | Detail |
+|---|---|---|
+| ASLR | enabled | DYNAMIC\_BASE is set |
+| Control Flow Guard | disabled | GUARD\_CF is not set |
+
+## Sections
+
+| Name | Virtual | Raw | Entropy | Flags | Notes |
+|---|---:|---:|---:|---|---|
+| .text | 3.1 KiB | 4.0 KiB | 5.90 | R-X |  |
+| .rdata | 2.4 KiB | 2.5 KiB | 4.60 | R-- |  |
+| .data | 752 B | 512 B | 1.80 | RW- |  |
+
+## Imports
+
+| Library | Functions |
+|---|---:|
+| KERNEL32.dll | 7 |
+| WS2\_32.dll | 4 |
+
+## Strings
+
+212 strings found (minimum length 5).
+
+By category: url 1, plain 211.
+
+- `url` 0x1a58 `http://203.0.113.7/gate.php`
+
+## Format details
+
+**pe**
+
+- machine: `x86-64`
+- bits: `64`
+- subsystem: `console`
+- entryPoint: `0x140001000`
+- entrySection: `.text`
+
+## Limitations
+
+- Static analysis only; the file was never executed.

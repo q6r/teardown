@@ -461,6 +461,10 @@ func sweepInputs() map[string][]byte {
 		"app":     testfixtures.AsarElectronApp(),
 		"plain":   testfixtures.Asar(file("a.txt", "alpha"), file("d/b.js", "nodeIntegration: true")),
 		"hostile": testfixtures.AsarRaw(`{"files":{"a":[1,{"x":2}],"b":{"size":1e400,"offset":"0"},"c":{"files":null}}}`, []byte("data")),
+		"hostile script": testfixtures.Asar(
+			file("m.js", "nodeIntegration: true \x00\x1b[31m\xff\xfe sandbox:!1 \n\r\n\t"+strings.Repeat("x", 5000)),
+			file("n.js", "contextIsolation\n  :\n\n false"),
+		),
 	}
 }
 

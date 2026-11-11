@@ -199,6 +199,46 @@ func TestPagesAreBuiltByTheAuroraShell(t *testing.T) {
 	}
 }
 
+// TestIconsUsedByTheProjectExistInTheKit: an icon the bundled kit does not draw would
+// render as nothing, so every name the project scripts ask for must be in its icon set.
+func TestIconsUsedByTheProjectExistInTheKit(t *testing.T) {
+	kit := read(t, "aurora.js")
+	used := regexp.MustCompile(`icon\('([a-z-]+)'`)
+	for _, name := range []string{"app.js", "report-view.js", "report-boot.js"} {
+		for _, m := range used.FindAllStringSubmatch(read(t, name), -1) {
+			if !regexp.MustCompile(`(?m)^\s+(?:'` + m[1] + `'|` + m[1] + `):\s*\[`).MatchString(kit) {
+				t.Errorf("%s draws the icon %q, which the bundled kit does not have", name, m[1])
+			}
+		}
+	}
+}
+
+// TestCodePanelHasNoInlineStylesOrRawColours: the Code panel is styled by classes and
+// tokens only (the strict Content-Security-Policy drops style attributes), and it hides
+// blocks and lines with the hidden attribute, which the kit guarantees to win over any display rule.
+func TestCodePanelHasNoInlineStylesOrRawColours(t *testing.T) {
+	js, css := read(t, "report-view.js"), read(t, "report-view.css")
+	start := strings.Index(js, "code evidence")
+	end := strings.Index(js, "sections of the page")
+	if start < 0 || end < start {
+		t.Fatal("the code evidence section of report-view.js was not found")
+	}
+	panel := js[start:end]
+	for _, bad := range []string{"style:", "style=", ".style.", "innerHTML"} {
+		if strings.Contains(panel, bad) {
+			t.Errorf("the Code panel uses %q: style it with a class in report-view.css", bad)
+		}
+	}
+	for _, class := range []string{"td-code__block", "td-code__table", "td-code__row", "td-code__flag", "td-code__scroll", "td-code__foot", "td-code__limits"} {
+		if !strings.Contains(css, "."+class) {
+			t.Errorf("report-view.css has no rule for .%s", class)
+		}
+	}
+	if !strings.Contains(css, ".is-hit") {
+		t.Error("report-view.css does not mark the flagged line")
+	}
+}
+
 // TestProjectFilesUseCurrentKitNames: the classes and tokens below are gone from the
 // bundled kit (or are only kept as aliases); a project file that used them would render
 // unstyled or ignore the theme.

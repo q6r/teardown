@@ -67,6 +67,10 @@ type Finding struct {
 	Category   string     `json:"category"`
 	Confidence Confidence `json:"confidence"`
 	Evidence   []string   `json:"evidence"`
+	// Code is the code behind the finding: instruction windows around call
+	// sites, hex windows or source lines. It is omitted when there is none; see
+	// [CodeBlock] for what a block carries and states.
+	Code []CodeBlock `json:"code,omitempty"`
 	// Limitations explains how this finding can be a false positive or incomplete.
 	Limitations []string `json:"limitations"`
 }

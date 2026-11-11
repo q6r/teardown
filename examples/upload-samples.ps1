@@ -4,7 +4,7 @@
 #   teardown serve                                      # in another terminal
 #   .\examples\upload-samples.ps1                       # the committed samples
 #   .\examples\upload-samples.ps1 -BaseUrl http://127.0.0.1:9000
-#   .\examples\upload-samples.ps1 -Extra dropper.bin    # plus your own files
+#   .\examples\upload-samples.ps1 -Extra my-file.exe    # plus your own files
 #
 # Prints one line per file: analysis id, risk, name. Uses curl.exe, which ships with Windows 10+.
 param(

@@ -62,6 +62,10 @@ const (
 	machineAMD64 = 0x8664
 )
 
+// MachineName names a COFF machine type: "x86", "x86-64", "ARM64" and so on,
+// or the four hexadecimal digits of one it does not know ("0x1234").
+func MachineName(m uint16) string { return machineName(m) }
+
 func machineName(m uint16) string {
 	switch m {
 	case machineI386:

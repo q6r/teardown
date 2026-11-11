@@ -42,7 +42,11 @@ var (
 //     a network request.
 //   - Without scripting the page falls back to a plain readable summary inside
 //     <noscript>.
+//   - The code blocks of the findings are held to the caps of the model (see
+//     [report.Finding.ClippedCode]) before they go into the island, so a report
+//     that carries thousands of them cannot make the page grow without bound.
 func HTML(w io.Writer, rep *report.Report) error {
+	rep = withClippedCode(rep)
 	data, err := json.Marshal(rep)
 	if err != nil {
 		return fmt.Errorf("encode report: %w", err)
@@ -165,6 +169,7 @@ func writeFallback(sb *strings.Builder, rep *report.Report) {
 		fmt.Fprintf(sb, "<h3><span class=\"td-sev\">%s</span> <code>%s</code> %s</h3>\n<p>Confidence: %s</p>\n",
 			e(string(f.Severity)), e(f.ID), e(f.Title), e(string(f.Confidence)))
 		writeList(sb, "Evidence", f.Evidence)
+		writeCode(sb, &f)
 		writeList(sb, "Limitations", f.Limitations)
 	}
 	sb.WriteString("<h2>Hashes</h2>\n<table>\n")

@@ -11,11 +11,14 @@ import (
 
 // Tool names.
 const (
-	toolAnalyze = "analyze_file"
-	toolStrings = "list_strings"
-	toolHash    = "hash_file"
-	toolEntropy = "entropy_profile"
-	toolDiff    = "diff_files"
+	toolAnalyze     = "analyze_file"
+	toolStrings     = "list_strings"
+	toolHash        = "hash_file"
+	toolEntropy     = "entropy_profile"
+	toolDiff        = "diff_files"
+	toolDisassemble = "disassemble"
+	toolFindCalls   = "find_calls"
+	toolReadBytes   = "read_bytes"
 )
 
 // Protocol versions in which optional descriptor and result members appeared.
@@ -173,6 +176,75 @@ func newTools() []*tool {
 }`),
 			run: (*server).diffFiles,
 		},
+		{
+			name:  toolDisassemble,
+			title: "Disassemble x86 code",
+			description: "Disassemble x86 and x86-64 machine code from a file without executing it: Intel syntax, at most 256 instructions per call. " +
+				"Start at a virtual address (address, as 0x and hexadecimal digits or as decimal digits; PE, ELF and Mach-O images are mapped through " +
+				"their section table or program headers, so the addresses are the ones the report shows), at a file offset (offset), or at neither to start " +
+				"at the entry point. The instruction set comes from the file header; pass arch for raw bytes or to override the header. ARM64 and other " +
+				"instruction sets are not supported. The result is a code block of kind disasm: lines with address, offset, bytes and text, and limitations " +
+				"that say what it cannot show. In a PE image a line that calls or jumps through the import table carries a note naming the import " +
+				"(\"KERNEL32.dll!VirtualAllocEx\"), as in the findings and in find_calls. " +
+				"It is a linear sweep, so data can be shown as code and the sweep can lose sync; it is not a decompiler. " +
+				"'next' says where to continue.",
+			schema: json.RawMessage(`{
+  "type": "object",
+  "properties": {
+    "path": {"type": "string", "minLength": 1, "description": "` + pathDescription + `"},
+    "address": {"type": "string", "pattern": "^(0[xX][0-9a-fA-F]{1,16}|[0-9]{1,20})$", "description": "Virtual address to start at: 0x and hexadecimal digits, or decimal digits. It is a string because a JSON number cannot hold every 64-bit address. Not together with offset."},
+    "offset": {"type": "integer", "minimum": 0, "description": "File offset to start at. Not together with address."},
+    "count": {"type": "integer", "minimum": 1, "maximum": 256, "default": 24, "description": "Number of instructions to decode."},
+    "arch": {"type": "string", "enum": ["x86", "x86-64"], "description": "Instruction set. By default it comes from the file header; it is required for raw bytes (a file that is not a PE, ELF or Mach-O image) and overrides the header when given."}
+  },
+  "required": ["path"],
+  "additionalProperties": false
+}`),
+			run: (*server).disassemble,
+		},
+		{
+			name:  toolFindCalls,
+			title: "Find the calls to an imported function",
+			description: "Find the places in the code of a PE image (x86 or x86-64) that call an imported function, without executing the file: for each call site " +
+				"its address, file offset and section, how it refers to the import (a call through the import address table, through a thunk, a jump) and the " +
+				"instructions around it, so the way the arguments are set up is visible. Name the function as the findings of analyze_file do, with or without " +
+				"the library (\"KERNEL32.dll!VirtualAllocEx\" or \"VirtualAllocEx\"), in any case; the ANSI and wide spellings match together. " +
+				"At most 100 sites per call; 'total' counts all of them. The result is a list of sites, each with a code block of kind disasm. " +
+				"It is a linear sweep with a small built-in decoder: data can be shown as code, imports resolved at run time (GetProcAddress) are invisible, " +
+				"packed code hides its calls, and it is not a decompiler. ELF, Mach-O and other instruction sets are not supported.",
+			schema: json.RawMessage(`{
+  "type": "object",
+  "properties": {
+    "path": {"type": "string", "minLength": 1, "description": "` + pathDescription + `"},
+    "api": {"type": "string", "minLength": 1, "maxLength": 256, "description": "The imported function to look for: 'Library!Function' or just 'Function', in any case. A name without a library matches the function of every library, and the ANSI and wide spellings (CreateProcessA, CreateProcessW) together."},
+    "before": {"type": "integer", "minimum": 0, "maximum": 40, "default": 8, "description": "Instructions to show before each call."},
+    "after": {"type": "integer", "minimum": 0, "maximum": 20, "default": 4, "description": "Instructions to show after each call."},
+    "max": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10, "description": "Call sites to return; the best first (calls through the import table, then calls through thunks)."}
+  },
+  "required": ["path", "api"],
+  "additionalProperties": false
+}`),
+			run: (*server).findCalls,
+		},
+		{
+			name:  toolReadBytes,
+			title: "Read raw bytes of a file",
+			description: "Read a bounded window of the raw bytes of a file and return it as hex and ASCII rows of 16 bytes, at most 4096 bytes per call. " +
+				"Use it to look at the bytes behind a finding, a string offset or a section reported by analyze_file. The result is a code block of kind hex " +
+				"(offset, hex bytes and ASCII text per row), with the section the window starts in when the file is a PE, ELF or Mach-O image; 'next' says " +
+				"where to continue. The file is read and never executed.",
+			schema: json.RawMessage(`{
+  "type": "object",
+  "properties": {
+    "path": {"type": "string", "minLength": 1, "description": "` + pathDescription + `"},
+    "offset": {"type": "integer", "minimum": 0, "default": 0, "description": "File offset of the first byte of the window. It must lie inside the file."},
+    "length": {"type": "integer", "minimum": 1, "maximum": 4096, "default": 128, "description": "Number of bytes to read; the window is cut short by the end of the file."}
+  },
+  "required": ["path"],
+  "additionalProperties": false
+}`),
+			run: (*server).readBytes,
+		},
 	}
 }
 
@@ -221,6 +293,17 @@ func jsonTypeName(t reflect.Type) string {
 func requireString(v *string, name string) (string, error) {
 	if v == nil {
 		return "", userErrorf("missing required argument %q", name)
+	}
+	return *v, nil
+}
+
+// int64Arg is intArg for 64-bit values such as file offsets.
+func int64Arg(v *int64, name string, def, lo, hi int64) (int64, error) {
+	if v == nil {
+		return def, nil
+	}
+	if *v < lo || *v > hi {
+		return 0, userErrorf("argument %q must be between %d and %d (got %d)", name, lo, hi, *v)
 	}
 	return *v, nil
 }

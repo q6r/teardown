@@ -4,3 +4,6 @@
 {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"hash_file","arguments":{"path":"hello.exe"}}}
 {"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"analyze_file","arguments":{"path":"slip.zip"}}}
 {"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"analyze_file","arguments":{"path":"../etc/passwd"}}}
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"disassemble","arguments":{"path":"hello.exe","count":3}}}
+{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"read_bytes","arguments":{"path":"hello.exe","offset":0,"length":32}}}
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"find_calls","arguments":{"path":"hello.exe","api":"ExitProcess"}}}

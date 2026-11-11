@@ -5,7 +5,7 @@
 #   teardown serve                                        # in another terminal
 #   bash examples/upload-samples.sh                       # the committed samples
 #   bash examples/upload-samples.sh http://127.0.0.1:9000 # another server
-#   TEARDOWN_EXTRA="dropper.bin" bash examples/upload-samples.sh   # plus your own files
+#   TEARDOWN_EXTRA="my-file.exe" bash examples/upload-samples.sh   # plus your own files
 #
 # Prints one line per file: HTTP status, analysis id, risk, name. Needs only curl.
 set -euo pipefail

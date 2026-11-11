@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "teardown",
+          "version": "0.2.0",
+          "informationUri": "https://github.com/q6r/teardown",
+          "rules": [
+            {
+              "id": "imports.process-injection",
+              "shortDescription": {
+                "text": "Imports cover the full process-injection chain (allocate, write, execute)"
+              },
+              "help": {
+                "text": "How this can be wrong: API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools) imports the same functions. Functions resolved at run time (GetProcAddress, dlsym) or hidden by a packer are not in the import table, so a missing cluster proves nothing either."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "category": "imports",
+                "tags": [
+                  "imports",
+                  "static-analysis"
+                ]
+              }
+            },
+            {
+              "id": "indicators.network",
+              "shortDescription": {
+                "text": "Hard-coded network indicators"
+              },
+              "help": {
+                "text": "How this can be wrong: A string in the file does not mean the program contacts it: it can be dead data, a placeholder or a documentation address."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "indicators",
+                "tags": [
+                  "indicators",
+                  "static-analysis"
+                ]
+              }
+            },
+            {
+              "id": "application.electron-risky-settings",
+              "shortDescription": {
+                "text": "Bundled JavaScript mentions settings that widen the attack surface"
+              },
+              "help": {
+                "text": "How this can be wrong: The settings are read from text; other code can change them before a window opens."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "application",
+                "tags": [
+                  "application",
+                  "static-analysis"
+                ]
+              }
+            },
+            {
+              "id": "hardening.no-cfg",
+              "shortDescription": {
+                "text": "Control Flow Guard is not enabled"
+              },
+              "help": {
+                "text": "How this can be wrong: A missing mitigation describes how hard the file is to exploit, not whether it is malicious."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "category": "hardening",
+                "tags": [
+                  "hardening",
+                  "static-analysis"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "artifacts": [
+        {
+          "location": {
+            "uri": "dropper.exe",
+            "index": 0
+          },
+          "length": 38400,
+          "hashes": {
+            "md5": "5f0e3a7c9b21d84e6a1f0c3d7b92e4a8",
+            "sha-1": "9c1185a5c5e9fc54612808977ee8f548b2258d31",
+            "sha-256": "3f2a9c7e41d0b85a6e13c97f2b40d8a15c6e9f0b7d3a2e8c14b95f60a7d1c3e2"
+          }
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "imports.process-injection",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "Imports cover the full process-injection chain (allocate, write, execute). Evidence: allocate or map memory in another process: KERNEL32.dll!VirtualAllocEx; write to another process: KERNEL32.dll!WriteProcessMemory; start or hijack a thread there: KERNEL32.dll!CreateRemoteThread. Code: 0x140001036 call qword ptr [rip+0x1fc4] (KERNEL32.dll!VirtualAllocEx)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "dropper.exe",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "properties": {
+            "category": "imports",
+            "code": [
+              {
+                "kind": "disasm",
+                "title": "Call site of KERNEL32.dll!VirtualAllocEx",
+                "section": ".text",
+                "address": "0x140001036",
+                "offset": 1078,
+                "text": "call qword ptr [rip+0x1fc4]",
+                "note": "KERNEL32.dll!VirtualAllocEx"
+              },
+              {
+                "kind": "disasm",
+                "title": "Call site of KERNEL32.dll!WriteProcessMemory",
+                "section": ".text",
+                "address": "0x140001065",
+                "offset": 1125,
+                "text": "call qword ptr [rip+0x1f9d]",
+                "note": "KERNEL32.dll!WriteProcessMemory"
+              },
+              {
+                "kind": "disasm",
+                "title": "Call site of KERNEL32.dll!CreateRemoteThread",
+                "section": ".text",
+                "address": "0x140001085",
+                "offset": 1157,
+                "text": "call qword ptr [rip+0x1f85]",
+                "note": "KERNEL32.dll!CreateRemoteThread"
+              },
+              {
+                "kind": "disasm",
+                "title": "Call site of KERNEL32.dll!OpenProcess",
+                "section": ".text",
+                "address": "0x14000100b",
+                "offset": 1035,
+                "text": "call qword ptr [rip+0x2007]",
+                "note": "KERNEL32.dll!OpenProcess"
+              }
+            ],
+            "confidence": "medium",
+            "evidence": [
+              "allocate or map memory in another process: KERNEL32.dll!VirtualAllocEx",
+              "write to another process: KERNEL32.dll!WriteProcessMemory",
+              "start or hijack a thread there: KERNEL32.dll!CreateRemoteThread"
+            ],
+            "limitations": [
+              "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools) imports the same functions.",
+              "Functions resolved at run time (GetProcAddress, dlsym) or hidden by a packer are not in the import table, so a missing cluster proves nothing either."
+            ],
+            "severity": "high"
+          }
+        },
+        {
+          "ruleId": "indicators.network",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "Hard-coded network indicators. Evidence: url: http://203.0.113.7/gate.php. Code: file offset 0x1a50 nt: ....http://2"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "dropper.exe",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "properties": {
+            "category": "indicators",
+            "code": [
+              {
+                "kind": "hex",
+                "title": "Bytes around the URL at file offset 0x1a58",
+                "section": ".rdata",
+                "offset": 6736,
+                "text": "nt: ....http://2"
+              }
+            ],
+            "confidence": "medium",
+            "evidence": [
+              "url: http://203.0.113.7/gate.php"
+            ],
+            "limitations": [
+              "A string in the file does not mean the program contacts it: it can be dead data, a placeholder or a documentation address."
+            ],
+            "severity": "medium"
+          }
+        },
+        {
+          "ruleId": "application.electron-risky-settings",
+          "ruleIndex": 2,
+          "level": "warning",
+          "message": {
+            "text": "Bundled JavaScript mentions settings that widen the attack surface. Evidence: nodeIntegration: true (app/main.js); contextIsolation: false (app/main.js). Code: app/main.js line 18   const win = new BrowserWindow({ webPreferences: { nodeIntegration: true, contextIsolation: false } });"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "dropper.exe",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "properties": {
+            "category": "application",
+            "code": [
+              {
+                "kind": "source",
+                "title": "Window settings in the main process",
+                "file": "app/main.js",
+                "offset": 12127,
+                "line": 18,
+                "text": "  const win = new BrowserWindow({ webPreferences: { nodeIntegration: true, contextIsolation: false } });"
+              }
+            ],
+            "confidence": "low",
+            "evidence": [
+              "nodeIntegration: true (app/main.js)",
+              "contextIsolation: false (app/main.js)"
+            ],
+            "limitations": [
+              "The settings are read from text; other code can change them before a window opens."
+            ],
+            "severity": "medium"
+          }
+        },
+        {
+          "ruleId": "hardening.no-cfg",
+          "ruleIndex": 3,
+          "level": "note",
+          "message": {
+            "text": "Control Flow Guard is not enabled. Evidence: GUARD_CF is not set in the DLL characteristics"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "dropper.exe",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "properties": {
+            "category": "hardening",
+            "confidence": "high",
+            "evidence": [
+              "GUARD_CF is not set in the DLL characteristics"
+            ],
+            "limitations": [
+              "A missing mitigation describes how hard the file is to exploit, not whether it is malicious."
+            ],
+            "severity": "info"
+          }
+        }
+      ]
+    }
+  ]
+}

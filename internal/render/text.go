@@ -399,6 +399,7 @@ func (t *textView) findings() {
 			}
 			t.line("      %s %s", t.p.dim("evidence:"), clip(safe(e), t.o.width()-20))
 		}
+		t.code(&f)
 		lims := f.Limitations
 		if !t.o.Verbose && len(lims) > 1 {
 			lims = lims[:1]

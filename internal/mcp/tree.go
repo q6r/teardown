@@ -128,6 +128,8 @@ func stringNode(s string) *node { return &node{kind: kindScalar, raw: appendQuot
 func boolNode(b bool) *node     { return &node{kind: kindScalar, raw: []byte(strconv.FormatBool(b))} }
 func intNode(i int) *node       { return &node{kind: kindScalar, raw: []byte(strconv.Itoa(i))} }
 
+func int64Node(i int64) *node { return &node{kind: kindScalar, raw: []byte(strconv.FormatInt(i, 10))} }
+
 // child returns the object member with the given key, or nil.
 func (n *node) child(key string) *node {
 	if n == nil || n.kind != kindObject {

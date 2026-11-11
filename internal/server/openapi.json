@@ -525,8 +525,50 @@
           "category": { "type": "string" },
           "confidence": { "type": "string", "enum": ["low", "medium", "high"] },
           "evidence": { "type": "array", "items": { "type": "string" } },
+          "code": {
+            "type": "array",
+            "maxItems": 12,
+            "items": { "$ref": "#/components/schemas/CodeBlock" },
+            "description": "The code behind the finding: instruction windows around call sites, hex windows or source lines. Omitted when there is none. Every block states its limits; the tool shows code and does not claim malice."
+          },
           "limitations": { "type": "array", "items": { "type": "string" } }
         }
+      },
+      "CodeBlock": {
+        "type": "object",
+        "required": ["kind", "offset", "lines", "limitations"],
+        "description": "One piece of code that backs a finding. A disassembly is a linear sweep over x86 or x86-64 bytes: it can show data as code and lose sync, and it is not a decompilation.",
+        "properties": {
+          "kind": { "type": "string", "enum": ["disasm", "hex", "source"] },
+          "title": { "type": "string" },
+          "file": { "type": "string", "description": "Path inside a container (zip, asar) when the block comes from one." },
+          "section": { "type": "string", "description": "Section name for binaries." },
+          "offset": { "type": "integer", "minimum": 0, "description": "File offset of the first line." },
+          "address": { "$ref": "#/components/schemas/CodeAddress" },
+          "arch": { "type": "string", "description": "Instruction set of a disassembly: x86-64 or x86." },
+          "lines": { "type": "array", "maxItems": 64, "items": { "$ref": "#/components/schemas/CodeLine" } },
+          "truncated": { "type": "boolean", "description": "True when the block was cut and the code goes on beyond its last line." },
+          "limitations": { "type": "array", "minItems": 1, "items": { "type": "string" }, "description": "What the block cannot show. Never empty." }
+        }
+      },
+      "CodeLine": {
+        "type": "object",
+        "required": ["offset", "text"],
+        "properties": {
+          "address": { "$ref": "#/components/schemas/CodeAddress" },
+          "offset": { "type": "integer", "minimum": 0, "description": "File offset of the line." },
+          "bytes": { "type": "string", "pattern": "^([0-9a-fA-F]{2}( [0-9a-fA-F]{2}){0,15})?$", "description": "The encoded bytes as hex pairs, for example ff 15 b7 1f 00 00." },
+          "text": { "type": "string", "description": "The instruction, the ASCII column of a hex row or the source line." },
+          "note": { "type": "string", "description": "Explains the line, for example KERNEL32.dll!VirtualAllocEx." },
+          "highlight": { "type": "boolean", "description": "The line the finding is about." },
+          "line": { "type": "integer", "minimum": 1, "description": "1-based source line number (kind source)." }
+        }
+      },
+      "CodeAddress": {
+        "type": "string",
+        "pattern": "^0x[0-9a-fA-F]{1,16}$",
+        "examples": ["0x140001042"],
+        "description": "A virtual address written as 0x and hexadecimal digits, because a JSON number cannot hold every 64-bit value."
       },
       "Risk": {
         "type": "object",

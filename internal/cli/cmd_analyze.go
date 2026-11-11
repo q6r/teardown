@@ -27,6 +27,8 @@ is a deterministic triage aid, not a verdict.`,
 		examples: []string{
 			"teardown analyze setup.exe",
 			"teardown analyze setup.exe -v                     # risk arithmetic, all evidence, all limitations",
+			"teardown analyze setup.exe --code-all             # every block of code behind each finding, in full",
+			"teardown analyze setup.exe --no-code              # findings without the code behind them",
 			"teardown analyze app.apk --json -o report.json    # machine-readable report",
 			"teardown analyze app.apk --sarif -o app.sarif     # findings for GitHub code scanning and other SARIF tools",
 			"teardown analyze lib.so --html report.html        # self-contained HTML report",
@@ -35,6 +37,7 @@ is a deterministic triage aid, not a verdict.`,
 		register: func(f *flagSet) runner {
 			var o struct {
 				json, md, sarif, ascii, verbose bool
+				noCode, codeAll                 bool
 				html, out, color, failOn        string
 				minString, maxStrings           int
 				width                           int
@@ -50,6 +53,8 @@ is a deterministic triage aid, not a verdict.`,
 			f.Bool(&o.ascii, "ascii", "", "Use ASCII instead of unicode bars and symbols")
 			f.Bool(&o.verbose, "verbose", "v", "Show the risk arithmetic, all evidence and all limitations")
 			f.Int(&o.width, "width", "", "N", 0, "Line width of the terminal output (default: $COLUMNS or 100)")
+			f.Bool(&o.noCode, "no-code", "", "Leave the code behind the findings (instructions, bytes, source lines) out of the output")
+			f.Bool(&o.codeAll, "code-all", "", "Show every code block of each finding in full in the terminal output (--json and --html already carry them all)")
 			f.Group("Analysis")
 			f.Int(&o.minString, "min-string", "", "N", analyze.DefaultMinString, "Minimum string length")
 			f.Int(&o.maxStrings, "max-strings", "", "N", analyze.DefaultMaxStrings, "Maximum string items kept in the report")
@@ -82,6 +87,8 @@ is a deterministic triage aid, not a verdict.`,
 					return usageError(env, "analyze", "--timeout must be positive")
 				case o.width < 0:
 					return usageError(env, "analyze", "--width must not be negative")
+				case o.noCode && o.codeAll:
+					return usageError(env, "analyze", "choose one of --no-code or --code-all")
 				}
 				var threshold report.Severity
 				if o.failOn != "" {
@@ -92,7 +99,7 @@ is a deterministic triage aid, not a verdict.`,
 					threshold = s
 				}
 
-				rep, err := analyze.File(ctx, pos[0], analyze.Options{
+				rep, err := env.Analyze(ctx, pos[0], analyze.Options{
 					MinString: o.minString, MaxStrings: o.maxStrings, Timeout: o.timeout, Now: env.Now,
 				})
 				if err != nil {
@@ -102,8 +109,15 @@ is a deterministic triage aid, not a verdict.`,
 					return failure(env, "analyze", err)
 				}
 
+				// The terminal renderer honours --no-code itself; every other output is
+				// given a copy of the report without the code blocks.
+				shown := rep
+				if o.noCode && (o.json || o.md || o.sarif || o.html != "") {
+					shown = rep.WithoutCode()
+				}
+
 				if o.html != "" {
-					if code := writeHTML(env, o.html, pos[0], rep); code != exitOK {
+					if code := writeHTML(env, o.html, pos[0], shown); code != exitOK {
 						return code
 					}
 				} else {
@@ -114,13 +128,15 @@ is a deterministic triage aid, not a verdict.`,
 					var werr error
 					switch {
 					case o.json:
-						werr = writeJSON(dest.w, rep)
+						werr = writeJSON(dest.w, shown)
 					case o.md:
-						werr = render.Markdown(dest.w, rep)
+						werr = render.Markdown(dest.w, shown)
 					case o.sarif:
-						werr = render.SARIF(dest.w, rep)
+						werr = render.SARIF(dest.w, shown)
 					default:
-						werr = render.Text(dest.w, rep, renderOptions(env, dest.w, o.color, o.ascii, o.verbose, o.width))
+						ro := renderOptions(env, dest.w, o.color, o.ascii, o.verbose, o.width)
+						ro.HideCode, ro.CodeAll = o.noCode, o.codeAll
+						werr = render.Text(dest.w, rep, ro)
 					}
 					if cerr := dest.close(); werr == nil {
 						werr = cerr

@@ -7,6 +7,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/q6r/teardown/internal/format/pe"
 	"github.com/q6r/teardown/internal/hashing"
 	"github.com/q6r/teardown/internal/limits"
 	"github.com/q6r/teardown/internal/report"
@@ -47,11 +48,13 @@ func Reader(ctx context.Context, r io.ReaderAt, size int64, opts Options) (*repo
 	// 3. Format-specific parsing (each parser is isolated, bounded and cancellable).
 	lim := limits.ForSize(size)
 	parseFormat(stages, r, size, lim)
+	code := stages.callSites(r, size) // the code behind the imports, nil when the format has none to show
 
 	// 4. Findings and risk, then a last pass that redacts secrets anywhere they could have leaked.
-	res := rules.Evaluate(rep)
+	res := rules.EvaluateWith(rep, rules.Options{Code: code})
 	rep.Findings, rep.Risk = res.Findings, res.Risk
 	scrubSecrets(rep)
+	stages.run("evidence", func() error { return addEvidence(ctx, rep, r, size, lim) })
 	addLimitations(rep)
 
 	rep.DurationMs = max(opts.Now().Sub(start).Milliseconds(), 0)
@@ -114,6 +117,7 @@ type stages struct {
 	ctx     context.Context
 	rep     *report.Report
 	timeout time.Duration
+	layout  *pe.Layout // the layout of a parsed PE image, for the scan for call sites
 }
 
 // run executes fn behind a recover and records its failure as a finding.

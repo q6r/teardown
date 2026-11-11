@@ -12,6 +12,9 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/q6r/teardown/internal/analyze"
+	"github.com/q6r/teardown/internal/report"
 )
 
 // Exit codes.
@@ -34,6 +37,8 @@ type Env struct {
 	IsTTY func(io.Writer) bool
 	// Now supplies the clock for reports.
 	Now func() time.Time
+	// Analyze analyses one file for the analyze command (default [analyze.File]).
+	Analyze func(ctx context.Context, path string, opts analyze.Options) (*report.Report, error)
 }
 
 // OSEnv returns the real process environment.
@@ -60,6 +65,9 @@ func (e Env) withDefaults() Env {
 	if e.Now == nil {
 		e.Now = time.Now
 	}
+	if e.Analyze == nil {
+		e.Analyze = analyze.File
+	}
 	return e
 }
 
@@ -81,7 +89,7 @@ type command struct {
 // commands lists the subcommands in display order.
 func commands() []command {
 	return []command{
-		analyzeCommand(), stringsCommand(), hashCommand(), diffCommand(),
+		analyzeCommand(), stringsCommand(), hashCommand(), diffCommand(), disasmCommand(), xrefsCommand(), hexdumpCommand(),
 		serveCommand(), mcpCommand(), completionCommand(), versionCommand(),
 	}
 }
@@ -177,7 +185,10 @@ Quick start:
   teardown analyze app.exe --json           The full report as JSON (schema teardown.report/v1)
   teardown analyze app.exe --html out.html  A self-contained HTML report
   teardown analyze app.exe --fail-on high   Exit 3 when a finding of severity high or worse exists
-  teardown serve                            Dashboard and JSON API on http://127.0.0.1:7777
+  teardown disasm app.exe --at 0x140001030  x86 and x86-64 instructions at an address (or --offset)
+  teardown xrefs app.exe VirtualAllocEx     Who calls an import: its call sites with the code around them
+  teardown hexdump app.exe --at 0x400       Hex and ASCII window of the raw bytes
+  teardown serve                           Dashboard and JSON API on http://127.0.0.1:7777
   teardown mcp --root .                     MCP server on stdio for AI agents, limited to this folder
 
 Exit codes:

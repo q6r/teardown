@@ -116,6 +116,14 @@ func (f *flagSet) Parse(args []string) ([]string, error) {
 	}
 }
 
+// Given reports whether the flag was set on the command line under that exact
+// name (a flag with a short form counts once per spelling used).
+func (f *flagSet) Given(name string) bool {
+	given := false
+	f.fs.Visit(func(fl *flag.Flag) { given = given || fl.Name == name })
+	return given
+}
+
 // helpRequested reports whether err is the flag package's -h/--help signal.
 func helpRequested(err error) bool { return errors.Is(err, flag.ErrHelp) }
 

@@ -65,6 +65,26 @@ func contentErr(err error, e Entry) error {
 	}
 }
 
+// DataOffset validates the local header of e and returns the file offset of the
+// first byte of its (possibly compressed) data. The offset is taken from the
+// local header, whose name and extra field can differ in length from the ones in
+// the central directory. A header that is missing, outside the file or not a
+// local header yields an error wrapping [binio.ErrTruncated] or [ErrCorrupt].
+func DataOffset(r io.ReaderAt, size int64, e Entry) (int64, error) {
+	hdr, err := binio.ReadAt(r, size, e.LocalOffset, localHeaderLen)
+	if err != nil {
+		return 0, fmt.Errorf("%w: local header of %q lies outside the file", binio.ErrTruncated, e.Name)
+	}
+	if le32(hdr) != sigLocal {
+		return 0, fmt.Errorf("%w: no local header for %q at offset %d", ErrCorrupt, e.Name, e.LocalOffset)
+	}
+	dataOff := e.LocalOffset + localHeaderLen + int64(le16(hdr[26:])) + int64(le16(hdr[28:]))
+	if dataOff > size {
+		return 0, fmt.Errorf("%w: data of %q lies outside the file", binio.ErrTruncated, e.Name)
+	}
+	return dataOff, nil
+}
+
 // open validates the local header of e and returns a reader of its
 // uncompressed content.
 func open(r io.ReaderAt, size int64, e Entry) (io.Reader, error) {
@@ -74,16 +94,9 @@ func open(r io.ReaderAt, size int64, e Entry) (io.Reader, error) {
 	if e.Method != 0 && e.Method != 8 {
 		return nil, fmt.Errorf("%w: method %d of %q", ErrUnsupported, e.Method, e.Name)
 	}
-	hdr, err := binio.ReadAt(r, size, e.LocalOffset, localHeaderLen)
+	dataOff, err := DataOffset(r, size, e)
 	if err != nil {
-		return nil, fmt.Errorf("%w: local header of %q lies outside the file", binio.ErrTruncated, e.Name)
-	}
-	if le32(hdr) != sigLocal {
-		return nil, fmt.Errorf("%w: no local header for %q at offset %d", ErrCorrupt, e.Name, e.LocalOffset)
-	}
-	dataOff := e.LocalOffset + localHeaderLen + int64(le16(hdr[26:])) + int64(le16(hdr[28:]))
-	if dataOff > size {
-		return nil, fmt.Errorf("%w: data of %q lies outside the file", binio.ErrTruncated, e.Name)
+		return nil, err
 	}
 	stored := int64(min(e.CompressedSize, math.MaxInt64))
 	section := io.NewSectionReader(r, dataOff, min(stored, size-dataOff))

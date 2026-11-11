@@ -26,6 +26,10 @@ const (
 	summaryFunctions = 25
 	summaryList      = 50
 	summaryExports   = 50
+	// The code behind each finding: the first blocks, and the lines around the
+	// flagged one in each block. These are the bounds of the terminal output too.
+	summaryCodeBlocks = 3
+	summaryCodeLines  = 24
 )
 
 // listMaxStrings is how many string items list_strings asks the analysis to keep.
@@ -98,13 +102,16 @@ func summarySteps() []trimStep {
 		capEachField(summaryFunctions, "functions", "imports"),
 		capDetailLists(summaryList),
 		capArrayAt(summaryExports, "exports"),
+		capEachField(summaryCodeBlocks, "code", "findings"),
+		capCodeLines(summaryCodeLines),
 	}
 }
 
 // analyzeLadder is the order in which analyze_file gives up detail while the
 // text exceeds the output cap: strings first, then import function lists, then
 // the lists inside details (archive entries and the like), then sections, then
-// the remaining lists, finally evidence and entropy windows.
+// the remaining lists, then the code behind the findings (lines of each block,
+// then whole blocks), finally evidence and entropy windows.
 func analyzeLadder() []trimStep {
 	var steps []trimStep
 	for _, n := range []int{1000, 500, 250, 100, 40, 20, 10, 0} {
@@ -124,6 +131,12 @@ func analyzeLadder() []trimStep {
 	}
 	for _, n := range []int{32, 16, 4, 0} {
 		steps = append(steps, capArrayAt(n, "imports"))
+	}
+	for _, n := range []int{16, 8, 4} {
+		steps = append(steps, capCodeLines(n))
+	}
+	for _, n := range []int{2, 1, 0} {
+		steps = append(steps, capEachField(n, "code", "findings"))
 	}
 	for _, n := range []int{5, 2, 0} {
 		steps = append(steps, capEachField(n, "evidence", "findings"))
@@ -149,6 +162,9 @@ func reportFinisher(detail string) func(*node, []trimNote) {
 		note := "Some lists were shortened to fit the server's output cap (see \"trimmed\": kept of total). Use list_strings to page through all strings."
 		if detail == detailSummary {
 			note = "Long lists were shortened (see \"trimmed\": kept of total). Use list_strings to page through all strings, or call analyze_file with detail=\"full\" for fuller lists (still limited by the server's output cap)."
+		}
+		if slices.ContainsFunc(notes, func(n trimNote) bool { return strings.HasPrefix(n.Path, "findings[].code") }) {
+			note += " Code blocks were shortened too: find_calls, disassemble and read_bytes read any part of the file."
 		}
 		root.setKey("note", stringNode(note))
 	}

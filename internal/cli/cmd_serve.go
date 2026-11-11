@@ -64,10 +64,11 @@ func mcpCommand() command {
 		name:    "mcp",
 		summary: "Start the MCP server on stdio so AI agents can analyse files",
 		long: `Speaks the Model Context Protocol (newline-delimited JSON-RPC on stdin/stdout)
-and exposes the tools analyze_file, list_strings, hash_file, entropy_profile and
-diff_files. Files are readable only below the --root directories (default: the
-current directory); symlinks that escape, directories and devices are refused.
-Nothing is ever executed. Logs go to stderr; stdout carries protocol messages only.`,
+and exposes the tools analyze_file, list_strings, hash_file, entropy_profile,
+diff_files, disassemble, find_calls and read_bytes. Files are readable only below the --root
+directories (default: the current directory); symlinks that escape, directories
+and devices are refused. Nothing is ever executed. Logs go to stderr; stdout
+carries protocol messages only.`,
 		examples: []string{
 			"teardown mcp --root .",
 			"teardown mcp --root ~/samples --root /tmp/downloads",

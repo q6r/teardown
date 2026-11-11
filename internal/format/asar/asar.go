@@ -88,20 +88,48 @@ type Hint struct {
 // When ctx ends mid-way the partial result is returned with ctx's error.
 func Parse(ctx context.Context, r io.ReaderAt, size int64, lim limits.Limits) (*Result, error) {
 	lim = lim.Normalize()
+	res, index, err := open(r, size, lim)
+	if res == nil {
+		return nil, err
+	}
+	if index == nil {
+		return res, nil
+	}
+
+	w := newWalker(r, size, lim, &res.Details)
+	if err := w.run(ctx, index); err != nil {
+		if ctx.Err() != nil {
+			return res, ctx.Err()
+		}
+		res.Notes = append(res.Notes, fmt.Sprintf("the index could not be fully parsed: %v", err))
+	}
+	res.Notes = append(res.Notes, w.notes()...)
+	if ctx.Err() != nil {
+		return res, ctx.Err()
+	}
+	res.Notes = append(res.Notes, w.inspect(ctx)...)
+	return res, ctx.Err()
+}
+
+// open reads and checks the framing of the archive and returns the result in
+// progress together with the raw JSON index. It returns (nil, nil, err) when r is
+// not an ASAR archive, and a result without an index when the index nests too
+// deeply to be walked (a note says so).
+func open(r io.ReaderAt, size int64, lim limits.Limits) (*Result, []byte, error) {
 	head, err := binio.ReadAt(r, size, 0, framingSize)
 	if err != nil {
-		return nil, fmt.Errorf("asar: %d bytes is too small to hold the 16-byte header", size)
+		return nil, nil, fmt.Errorf("asar: %d bytes is too small to hold the 16-byte header", size)
 	}
 	c := binio.NewCursor(head, binary.LittleEndian)
 	pickle, headerSize, payload, jsonLen := c.U32(), int64(c.U32()), int64(c.U32()), int64(c.U32())
 	if pickle != 4 {
-		return nil, errors.New("asar: not an ASAR archive (the size pickle must start with the value 4)")
+		return nil, nil, errors.New("asar: not an ASAR archive (the size pickle must start with the value 4)")
 	}
 	if jsonLen <= 0 || jsonLen > size-framingSize {
-		return nil, fmt.Errorf("asar: the index length %d does not fit the %d byte file", jsonLen, size)
+		return nil, nil, fmt.Errorf("asar: the index length %d does not fit the %d byte file", jsonLen, size)
 	}
 	if jsonLen > lim.MaxMeta {
-		return nil, fmt.Errorf("asar: the index is %d bytes, above the %d byte limit", jsonLen, lim.MaxMeta)
+		return nil, nil, fmt.Errorf("asar: the index is %d bytes, above the %d byte limit", jsonLen, lim.MaxMeta)
 	}
 
 	res := &Result{
@@ -126,26 +154,55 @@ func Parse(ctx context.Context, r io.ReaderAt, size int64, lim limits.Limits) (*
 
 	index, err := binio.ReadAt(r, size, framingSize, jsonLen)
 	if err != nil {
-		return nil, fmt.Errorf("asar: reading the index: %w", err)
+		return nil, nil, fmt.Errorf("asar: reading the index: %w", err)
 	}
 	if depth := jsonDepth(index, maxDepth); depth > maxDepth {
 		res.Notes = append(res.Notes, fmt.Sprintf("the index nests deeper than %d levels and was not parsed", maxDepth))
-		return res, nil
+		return res, nil, nil
 	}
+	return res, index, nil
+}
 
+// File is a regular file packed inside an archive, located in the archive file.
+type File struct {
+	// Path is the slash-separated path from the index, made printable and cut at
+	// 512 characters.
+	Path string
+	// Offset is the file offset of the first byte of the content.
+	Offset int64
+	// Size is the declared size in bytes. The whole content lies inside the archive file.
+	Size int64
+}
+
+// Walk streams the index and calls visit for every packed regular file in index
+// order until visit returns false. Directories, links and files kept outside the
+// archive (unpacked) are skipped, and so are entries whose offset or size point
+// outside the archive file, so every File that is visited can be read. Nothing is
+// extracted.
+//
+// It returns the error of a file that is not an ASAR archive, ctx's error when
+// the context ends, and an error describing the damage when the index could not
+// be parsed to the end (the files visited before it are valid). A caller that
+// only wants what is there can ignore every error but ctx's.
+func Walk(ctx context.Context, r io.ReaderAt, size int64, lim limits.Limits, visit func(File) bool) error {
+	lim = lim.Normalize()
+	res, index, err := open(r, size, lim)
+	if res == nil {
+		return err
+	}
+	if index == nil {
+		return nil
+	}
 	w := newWalker(r, size, lim, &res.Details)
-	if err := w.run(ctx, index); err != nil {
-		if ctx.Err() != nil {
-			return res, ctx.Err()
-		}
-		res.Notes = append(res.Notes, fmt.Sprintf("the index could not be fully parsed: %v", err))
+	w.visit = visit
+	switch err := w.run(ctx, index); {
+	case err == nil, errors.Is(err, errStop):
+		return nil
+	case ctx.Err() != nil:
+		return ctx.Err()
+	default:
+		return fmt.Errorf("asar: the index could not be fully parsed: %w", err)
 	}
-	res.Notes = append(res.Notes, w.notes()...)
-	if ctx.Err() != nil {
-		return res, ctx.Err()
-	}
-	res.Notes = append(res.Notes, w.inspect(ctx)...)
-	return res, ctx.Err()
 }
 
 // jsonDepth returns the nesting depth of braces and brackets outside strings,

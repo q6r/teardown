@@ -27,3 +27,6 @@ Thumbs.db
 # Local scratch space
 /tmp/
 /scratch/
+
+# Demo sample generated on demand (go run ./examples/gensamples -dropper); a PE that imports process-injection APIs can trip antivirus heuristics, so it is not committed
+examples/samples/dropper.bin

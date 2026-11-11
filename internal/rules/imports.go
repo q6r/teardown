@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/q6r/teardown/internal/apiname"
 	"github.com/q6r/teardown/internal/report"
 )
 
@@ -19,19 +20,9 @@ type importIndex struct {
 	total   int
 }
 
-// normalizeAPI folds an imported name into its canonical, comparable form.
-func normalizeAPI(name string) string {
-	n := strings.ToLower(name)
-	if i := strings.IndexByte(n, '@'); i >= 0 {
-		n = n[:i]
-	}
-	n = strings.TrimPrefix(n, "__imp_")
-	n = strings.TrimLeft(n, "_")
-	if strings.HasPrefix(n, "zw") {
-		n = "nt" + n[2:]
-	}
-	return n
-}
+// normalizeAPI folds an imported name into its canonical, comparable form (the
+// folding is shared with the code views, see package apiname).
+func normalizeAPI(name string) string { return apiname.Canonical(name) }
 
 func indexImports(imps []report.Import) importIndex {
 	ix := importIndex{byCanon: map[string][]string{}}
@@ -42,10 +33,8 @@ func indexImports(imps []report.Import) importIndex {
 			if lib.Library != "" && lib.Library != report.UnspecifiedLibrary {
 				display = lib.Library + "!" + fn
 			}
-			c := normalizeAPI(fn)
-			ix.byCanon[c] = append(ix.byCanon[c], display)
-			if n := len(c); n > 2 && (c[n-1] == 'a' || c[n-1] == 'w') {
-				ix.byCanon[c[:n-1]] = append(ix.byCanon[c[:n-1]], display)
+			for _, key := range apiname.Keys(fn) {
+				ix.byCanon[key] = append(ix.byCanon[key], display)
 			}
 		}
 	}
@@ -127,7 +116,7 @@ func ruleProcessInjection(in *input) []report.Finding {
 		sev, conf = report.SeverityHigh, report.ConfidenceMedium
 		title = "Imports cover the full process-injection chain (allocate, write, execute)"
 	}
-	return []report.Finding{{
+	return in.withCode(report.Finding{
 		ID: "imports.process-injection", Title: title, Severity: sev, Category: report.CategoryImports, Confidence: conf,
 		Evidence: evidence,
 		Limitations: []string{
@@ -135,7 +124,7 @@ func ruleProcessInjection(in *input) []report.Finding {
 			"Debuggers, profilers, anti-virus and game overlays legitimately use remote memory and thread APIs.",
 			dynamicLimitation,
 		},
-	}}
+	}, alloc, write, exec, open)
 }
 
 func ruleKeylogging(in *input) []report.Finding {
@@ -158,7 +147,7 @@ func ruleKeylogging(in *input) []report.Finding {
 	if len(ctx) > 0 {
 		evidence = append(evidence, "window context: "+strings.Join(sample(ctx, 3), ", "))
 	}
-	return []report.Finding{{
+	return in.withCode(report.Finding{
 		ID: "imports.keylogging", Title: "Imports resemble keyboard capture", Severity: report.SeverityMedium,
 		Category: report.CategoryImports, Confidence: report.ConfidenceLow, Evidence: evidence,
 		Limitations: []string{
@@ -166,7 +155,7 @@ func ruleKeylogging(in *input) []report.Finding {
 			"Input-method editors, accessibility tools, macro/automation utilities and games use these APIs for legitimate hotkeys and overlays.",
 			dynamicLimitation,
 		},
-	}}
+	}, hooks, keys, ctx)
 }
 
 func ruleAntiDebug(in *input) []report.Finding {
@@ -178,7 +167,7 @@ func ruleAntiDebug(in *input) []report.Finding {
 	if len(found) >= 4 {
 		sev = report.SeverityMedium
 	}
-	return []report.Finding{{
+	return in.withCode(report.Finding{
 		ID: "imports.anti-debug", Title: fmt.Sprintf("Imports include %d debugger-detection APIs", len(found)),
 		Severity: sev, Category: report.CategoryImports, Confidence: report.ConfidenceLow,
 		Evidence: sample(found, 8),
@@ -187,7 +176,7 @@ func ruleAntiDebug(in *input) []report.Finding {
 			"C runtimes, crash reporters, copy-protection and games routinely call IsDebuggerPresent and friends.",
 			dynamicLimitation,
 		},
-	}}
+	}, found)
 }
 
 func ruleCrypto(in *input) []report.Finding {
@@ -195,7 +184,7 @@ func ruleCrypto(in *input) []report.Finding {
 	if len(found) < 2 {
 		return nil
 	}
-	return []report.Finding{{
+	return in.withCode(report.Finding{
 		ID: "imports.crypto", Title: "Imports cryptographic APIs", Severity: report.SeverityInfo,
 		Category: report.CategoryImports, Confidence: report.ConfidenceMedium, Evidence: sample(found, 8),
 		Limitations: []string{
@@ -203,7 +192,7 @@ func ruleCrypto(in *input) []report.Finding {
 			"Cryptography is used for TLS, hashing, licensing and DRM as often as for ransomware or payload decryption; static imports cannot tell which.",
 			"Statically linked crypto code (Go, Rust, bundled OpenSSL) leaves no import trace.",
 		},
-	}}
+	}, found)
 }
 
 func ruleNetworking(in *input) []report.Finding {
@@ -211,14 +200,14 @@ func ruleNetworking(in *input) []report.Finding {
 	if len(found) < 2 {
 		return nil
 	}
-	return []report.Finding{{
+	return in.withCode(report.Finding{
 		ID: "imports.networking", Title: "Imports networking APIs", Severity: report.SeverityInfo,
 		Category: report.CategoryImports, Confidence: report.ConfidenceMedium, Evidence: sample(found, 8),
 		Limitations: []string{
 			apiPresenceLimitation,
 			"Network access says nothing about what is contacted; see the extracted URLs and addresses for candidates.",
 		},
-	}}
+	}, found)
 }
 
 func ruleDownloadExecute(in *input) []report.Finding {
@@ -227,7 +216,7 @@ func ruleDownloadExecute(in *input) []report.Finding {
 	if len(dl) == 0 || len(launch) == 0 {
 		return nil
 	}
-	return []report.Finding{{
+	return in.withCode(report.Finding{
 		ID: "imports.download-and-execute", Title: "Imports a file-download API together with process-launch APIs",
 		Severity: report.SeverityMedium, Category: report.CategoryImports, Confidence: report.ConfidenceLow,
 		Evidence: append([]string{"download: " + strings.Join(dl, ", ")}, "launch: "+strings.Join(sample(launch, 4), ", ")),
@@ -236,7 +225,7 @@ func ruleDownloadExecute(in *input) []report.Finding {
 			"Updaters and installers legitimately download and run files; nothing here shows what is downloaded or whether it is run.",
 			dynamicLimitation,
 		},
-	}}
+	}, dl, launch)
 }
 
 func ruleServices(in *input) []report.Finding {
@@ -245,7 +234,7 @@ func ruleServices(in *input) []report.Finding {
 	if len(found) < 3 || len(install) == 0 {
 		return nil
 	}
-	return []report.Finding{{
+	return in.withCode(report.Finding{
 		ID: "imports.service-manipulation", Title: "Imports APIs that create or reconfigure Windows services",
 		Severity: report.SeverityLow, Category: report.CategoryImports, Confidence: report.ConfidenceMedium,
 		Evidence: sample(found, 8),
@@ -253,7 +242,7 @@ func ruleServices(in *input) []report.Finding {
 			apiPresenceLimitation,
 			"Installers, drivers' setup programs and administration tools manage services as a matter of course.",
 		},
-	}}
+	}, install, found)
 }
 
 func ruleTokens(in *input) []report.Finding {
@@ -262,7 +251,7 @@ func ruleTokens(in *input) []report.Finding {
 	if len(found) < 3 || len(adjust) == 0 {
 		return nil
 	}
-	return []report.Finding{{
+	return in.withCode(report.Finding{
 		ID: "imports.token-privileges", Title: "Imports access-token and privilege manipulation APIs",
 		Severity: report.SeverityLow, Category: report.CategoryImports, Confidence: report.ConfidenceLow,
 		Evidence: sample(found, 8),
@@ -270,7 +259,7 @@ func ruleTokens(in *input) []report.Finding {
 			apiPresenceLimitation,
 			"Shutdown helpers, backup tools and installers adjust their own token privileges routinely.",
 		},
-	}}
+	}, adjust, found)
 }
 
 func ruleMinimalImports(in *input) []report.Finding {
@@ -282,7 +271,7 @@ func ruleMinimalImports(in *input) []report.Finding {
 	if len(load) == 0 || len(proc) == 0 {
 		return nil
 	}
-	return []report.Finding{{
+	return in.withCode(report.Finding{
 		ID: "imports.minimal-import-table", Title: fmt.Sprintf("Import table has only %d functions, including LoadLibrary and GetProcAddress", in.imp.total),
 		Severity: report.SeverityLow, Category: report.CategoryImports, Confidence: report.ConfidenceLow,
 		Evidence: append(sample(load, 2), sample(proc, 2)...),
@@ -290,7 +279,7 @@ func ruleMinimalImports(in *input) []report.Finding {
 			"Packers and shellcode loaders resolve everything else at run time, which this pattern resembles; so do some minimal launchers and installers.",
 			"Go and other non-C toolchains also produce small import tables.",
 		},
-	}}
+	}, proc, load)
 }
 
 func ruleReverseShell(in *input) []report.Finding {
@@ -306,7 +295,7 @@ func ruleReverseShell(in *input) []report.Finding {
 		"socket: " + strings.Join(sock, ", "), "connect: " + strings.Join(conn, ", "),
 		"descriptor redirection: " + strings.Join(dup, ", "), "exec: " + strings.Join(sample(exec, 3), ", "),
 	}
-	return []report.Finding{{
+	return in.withCode(report.Finding{
 		ID: "imports.reverse-shell-pattern", Title: "Imports match the classic reverse-shell call sequence",
 		Severity: report.SeverityMedium, Category: report.CategoryImports, Confidence: report.ConfidenceLow,
 		Evidence: evidence,
@@ -315,5 +304,5 @@ func ruleReverseShell(in *input) []report.Finding {
 			"Network daemons, SSH-like tools and supervisors combine the same calls for legitimate session handling.",
 			dynamicLimitation,
 		},
-	}}
+	}, sock, conn, dup, exec)
 }

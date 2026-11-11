@@ -75,6 +75,7 @@ func hostileReport() *report.Report {
 	rep.Details["pe"] = map[string]any{"pdbPath": closer, "packerHints": []string{comment, sneaky}, closer: sneaky}
 	rep.Findings[0].ID, rep.Findings[0].Title = closer, sneaky
 	rep.Findings[0].Evidence = []string{closer, comment, sneaky}
+	rep.Findings[0].Code = hostileCode()
 	rep.Findings[0].Limitations = []string{closer, lineSep}
 	rep.Risk.Label = closer
 	rep.Risk.Basis = []string{comment, sneaky}

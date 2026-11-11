@@ -9,6 +9,10 @@
 // structure becomes an entry in [Result.Notes] instead of an error, and every
 // count read from the file is validated against the file size before it is used
 // to allocate or loop. Parse never panics and polls its context.
+//
+// Besides the report facts, Parse returns a [Layout]: the address map of the
+// image and the import address table slot of every recorded imported function,
+// which package xref uses to find the code that calls the imports.
 package pe
 
 import (
@@ -49,6 +53,10 @@ type Result struct {
 	// Notes lists non-fatal problems met while parsing (truncated tables,
 	// addresses outside the file, caps reached).
 	Notes []string
+	// Layout maps addresses to file offsets and names the import address table
+	// slot of every recorded imported function. It is for code analysis and is
+	// not part of the report.
+	Layout Layout `json:"-"`
 }
 
 // Details holds the PE facts reported under details["pe"] in the report. Every
@@ -159,6 +167,7 @@ type parser struct {
 
 	imports            []report.Import
 	delayImports       []report.Import
+	slots              []ImportSlot
 	exports            []string
 	importTotal        int
 	recordedFuncs      int
@@ -189,6 +198,17 @@ func Parse(ctx context.Context, r io.ReaderAt, size int64, lim limits.Limits) (*
 
 // parse is Parse with an explicit budget for structure reads (tests shrink it).
 func parse(ctx context.Context, r io.ReaderAt, size int64, lim limits.Limits, budget int64) (*Result, error) {
+	p, err := newParser(ctx, r, size, lim, budget)
+	if err != nil {
+		return nil, err
+	}
+	p.run()
+	return p.finish(), p.err
+}
+
+// newParser returns a parser positioned after the headers, or an error when not
+// even the COFF header is usable.
+func newParser(ctx context.Context, r io.ReaderAt, size int64, lim limits.Limits, budget int64) (*parser, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -204,8 +224,30 @@ func parse(ctx context.Context, r io.ReaderAt, size int64, lim limits.Limits, bu
 	if err := p.readHeaders(); err != nil {
 		return nil, err
 	}
-	p.run()
-	return p.finish(), p.err
+	return p, nil
+}
+
+// LoadLayout reads only what mapping an image needs: the headers, the section
+// table and, when withSlots is set, the import tables for the address table slot
+// of every imported function. Unlike [Parse] it measures no entropy and builds no
+// report facts, so it stays cheap for a large file, and the [Layout] it returns
+// is the one Parse returns for the same bytes and limits. It returns (nil, err)
+// when not even the COFF header is usable and, when ctx ends first, the partial
+// layout together with ctx's error. It never executes the image.
+func LoadLayout(ctx context.Context, r io.ReaderAt, size int64, lim limits.Limits, withSlots bool) (*Layout, error) {
+	p, err := newParser(ctx, r, size, lim, readBudget)
+	if err != nil {
+		return nil, err
+	}
+	p.readSections()
+	if withSlots && p.h.hasOpt && !p.stopped() {
+		p.parseImports()
+		if !p.stopped() {
+			p.parseDelayImports()
+		}
+	}
+	l := p.layout()
+	return &l, p.err
 }
 
 // run executes the parsing steps in order, stopping early when cancelled.
@@ -299,17 +341,22 @@ func (p *parser) importsKernelModule() bool {
 	return false
 }
 
+// bits is 64 for a PE32+ image (or, when the optional header is too damaged to
+// say, a 64-bit machine) and 32 otherwise.
+func (p *parser) bits() int {
+	h := &p.h
+	if (h.hasOpt && h.pe64) || (!h.hasOpt && machineIs64(h.machine)) {
+		return 64
+	}
+	return 32
+}
+
 // finish derives the report facts from the parsed structures.
 func (p *parser) finish() *Result {
 	h, d := &p.h, &p.det
 	d.Kind = p.kind()
 	d.Machine = machineName(h.machine)
-	switch {
-	case h.hasOpt && h.pe64, !h.hasOpt && machineIs64(h.machine):
-		d.Bits = 64
-	default:
-		d.Bits = 32
-	}
+	d.Bits = p.bits()
 	d.Subsystem = subsystemName(h.subsystem)
 	d.TimestampRaw = h.timestamp
 	if h.timestamp != 0 {
@@ -343,6 +390,7 @@ func (p *parser) finish() *Result {
 	res.Exports = append([]string{}, p.exports...)
 	res.Hardening = p.buildHardening()
 	res.Details = *d
+	res.Layout = p.layout()
 	res.Notes = append([]string{}, p.notes...)
 	return res
 }

@@ -4,7 +4,9 @@
 // builders the tests use, so they are reproducible byte for byte.
 //
 //	go run ./examples/gensamples            # writes examples/samples/*
-//	go run ./examples/gensamples -dropper   # also writes dropper.bin (see below)
+//	go run ./examples/gensamples -dropper   # also writes dropper.bin: a PE64 whose imports cover
+//	                                        # the process-injection chain and whose code calls them
+//	                                        # (it does nothing when started: the entry point returns)
 package main
 
 import (
@@ -23,9 +25,25 @@ type sample struct {
 
 func main() {
 	out := flag.String("out", filepath.Join("examples", "samples"), "directory to write the samples to")
-	dropper := flag.Bool("dropper", false, "also write dropper.bin, a harmless PE that merely looks like a dropper to a static scanner (antivirus products may quarantine it)")
+	dropper := flag.Bool("dropper", false, "also write dropper.bin, a harmless PE whose imports and code look like a dropper to a static scanner (antivirus products may quarantine it)")
 	flag.Parse()
 
+	if err := os.MkdirAll(*out, 0o750); err != nil {
+		fmt.Fprintln(os.Stderr, "gensamples:", err)
+		os.Exit(1)
+	}
+	for _, s := range buildSamples(*dropper) {
+		path := filepath.Join(*out, s.name)
+		if err := os.WriteFile(path, s.data, 0o600); err != nil {
+			fmt.Fprintln(os.Stderr, "gensamples:", err)
+			os.Exit(1)
+		}
+		fmt.Printf("%-16s %6d bytes\n", s.name, len(s.data))
+	}
+}
+
+// buildSamples returns every sample file, dropper.bin last and only when asked for.
+func buildSamples(withDropper bool) []sample {
 	samples := []sample{
 		{"hello.exe", helloPE()},
 		{"upx-like.exe", testfixtures.PE(testfixtures.PEOptions{Sections: []testfixtures.PESection{
@@ -55,22 +73,10 @@ func main() {
 		{"electron.asar", testfixtures.AsarElectronApp()},
 		{"tiny.wasm", testfixtures.WasmSample()},
 	}
-	if *dropper {
+	if withDropper {
 		samples = append(samples, sample{"dropper.bin", testfixtures.SamplePE()})
 	}
-
-	if err := os.MkdirAll(*out, 0o750); err != nil {
-		fmt.Fprintln(os.Stderr, "gensamples:", err)
-		os.Exit(1)
-	}
-	for _, s := range samples {
-		path := filepath.Join(*out, s.name)
-		if err := os.WriteFile(path, s.data, 0o600); err != nil {
-			fmt.Fprintln(os.Stderr, "gensamples:", err)
-			os.Exit(1)
-		}
-		fmt.Printf("%-16s %6d bytes\n", s.name, len(s.data))
-	}
+	return samples
 }
 
 func helloPE() []byte {

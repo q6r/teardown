@@ -124,7 +124,7 @@ func (p *parser) parseImports() {
 		if thunks == 0 {
 			thunks = firstThunk
 		}
-		lib := p.walkLibrary(libRaw, thunks, false, false)
+		lib := p.walkLibrary(libRaw, thunks, firstThunk, false, false)
 		if len(p.imports) < p.lim.MaxList {
 			p.imports = append(p.imports, lib)
 		} else {
@@ -185,6 +185,10 @@ func (p *parser) parseDelayImports() {
 		}
 		nameRVA, ok1 := p.delayRVA(nameField, vaBased)
 		thunkRVA, ok2 := p.delayRVA(thunkField, vaBased)
+		iatRVA := uint32(0) // an address table that cannot be located only means no slots
+		if iatField != 0 {
+			iatRVA, _ = p.delayRVA(iatField, vaBased)
+		}
 		libRaw, ok3 := "", false
 		if ok1 {
 			libRaw, ok3 = p.cstringRVA(nameRVA)
@@ -193,7 +197,7 @@ func (p *parser) parseDelayImports() {
 			p.notef("delay-load descriptor %d points outside the file; the remaining delay-load imports were ignored", i)
 			return
 		}
-		lib := p.walkLibrary(libRaw, thunkRVA, true, vaBased)
+		lib := p.walkLibrary(libRaw, thunkRVA, iatRVA, true, vaBased)
 		if len(p.delayImports) < p.lim.MaxList {
 			p.delayImports = append(p.delayImports, lib)
 			p.det.DelayImportLibraries = append(p.det.DelayImportLibraries, binio.Printable(libRaw, displayNameLen))
@@ -210,9 +214,12 @@ func (p *parser) delayRVA(v uint32, vaBased bool) (uint32, bool) {
 	return p.fromVA(uint64(v))
 }
 
-// walkLibrary reads the thunks of one imported library. Regular (not
+// walkLibrary reads the thunks of one imported library; thunkRVA is the array
+// that holds the names (the import name table, or the address table when the
+// image has no name table) and iatRVA the import address table, which has the
+// same layout and whose entries are the slots code calls through. Regular (not
 // delay-load) imports also feed the import hash.
-func (p *parser) walkLibrary(libRaw string, thunkRVA uint32, delay, vaBased bool) report.Import {
+func (p *parser) walkLibrary(libRaw string, thunkRVA, iatRVA uint32, delay, vaBased bool) report.Import {
 	lib := report.Import{Library: binio.Printable(libRaw, displayNameLen), Functions: []string{}}
 	if delay {
 		lib.Library += delayLibSuffix
@@ -221,11 +228,14 @@ func (p *parser) walkLibrary(libRaw string, thunkRVA uint32, delay, vaBased bool
 		return lib
 	}
 	unresolved := false
+	index := uint64(0) // position of the thunk in the array, which names are skipped from
 	visited, clean := p.forEachThunk(thunkRVA, func(t thunk) bool {
 		if p.done() || p.thunkBudget <= 0 {
 			return false
 		}
 		p.thunkBudget--
+		slot := index
+		index++
 		var name string
 		if t.byOrdinal {
 			name = "#" + strconv.Itoa(int(t.ordinal))
@@ -258,6 +268,7 @@ func (p *parser) walkLibrary(libRaw string, thunkRVA uint32, delay, vaBased bool
 		if len(lib.Functions) < p.lim.MaxList && p.recordedFuncs < p.lim.MaxList*4 {
 			lib.Functions = append(lib.Functions, name)
 			p.recordedFuncs++
+			p.recordSlot(iatRVA, slot, lib.Library, name, delay)
 		}
 		return true
 	})

@@ -1,0 +1,411 @@
+{
+  "id": "imports.process-injection",
+  "title": "Imports cover the full process-injection chain (allocate, write, execute)",
+  "severity": "high",
+  "category": "imports",
+  "confidence": "medium",
+  "evidence": [
+    "allocate or map memory in another process: KERNEL32.dll!VirtualAllocEx",
+    "write to another process: KERNEL32.dll!WriteProcessMemory",
+    "start or hijack a thread there: KERNEL32.dll!CreateRemoteThread",
+    "process handle: KERNEL32.dll!OpenProcess",
+    "code: 4 call sites in .text (see the code blocks)"
+  ],
+  "code": [
+    {
+      "kind": "disasm",
+      "title": "call to KERNEL32.dll!VirtualAllocEx in .text",
+      "section": ".text",
+      "offset": 1213,
+      "address": "0x1400010bd",
+      "arch": "x86-64",
+      "lines": [
+        {
+          "address": "0x1400010bd",
+          "offset": 1213,
+          "bytes": "41 b8 a4 01 00 00",
+          "text": "mov r8d, 0x1a4"
+        },
+        {
+          "address": "0x1400010c3",
+          "offset": 1219,
+          "bytes": "ff 15 ef 10 00 00",
+          "text": "call qword ptr [rip+0x10ef]",
+          "note": "KERNEL32.dll!OpenProcess"
+        },
+        {
+          "address": "0x1400010c9",
+          "offset": 1225,
+          "bytes": "48 89 44 24 48",
+          "text": "mov qword ptr [rsp+0x48], rax"
+        },
+        {
+          "address": "0x1400010ce",
+          "offset": 1230,
+          "bytes": "48 8b 4c 24 48",
+          "text": "mov rcx, qword ptr [rsp+0x48]"
+        },
+        {
+          "address": "0x1400010d3",
+          "offset": 1235,
+          "bytes": "31 d2",
+          "text": "xor edx, edx"
+        },
+        {
+          "address": "0x1400010d5",
+          "offset": 1237,
+          "bytes": "41 b8 00 10 00 00",
+          "text": "mov r8d, 0x1000"
+        },
+        {
+          "address": "0x1400010db",
+          "offset": 1243,
+          "bytes": "41 b9 00 30 00 00",
+          "text": "mov r9d, 0x3000"
+        },
+        {
+          "address": "0x1400010e1",
+          "offset": 1249,
+          "bytes": "c7 44 24 20 40 00 00 00",
+          "text": "mov dword ptr [rsp+0x20], 0x40"
+        },
+        {
+          "address": "0x1400010e9",
+          "offset": 1257,
+          "bytes": "ff 15 b1 10 00 00",
+          "text": "call qword ptr [rip+0x10b1]",
+          "note": "KERNEL32.dll!VirtualAllocEx",
+          "highlight": true
+        },
+        {
+          "address": "0x1400010ef",
+          "offset": 1263,
+          "bytes": "48 89 44 24 50",
+          "text": "mov qword ptr [rsp+0x50], rax"
+        },
+        {
+          "address": "0x1400010f4",
+          "offset": 1268,
+          "bytes": "48 8b 4c 24 48",
+          "text": "mov rcx, qword ptr [rsp+0x48]"
+        },
+        {
+          "address": "0x1400010f9",
+          "offset": 1273,
+          "bytes": "48 8b 54 24 50",
+          "text": "mov rdx, qword ptr [rsp+0x50]"
+        },
+        {
+          "address": "0x1400010fe",
+          "offset": 1278,
+          "bytes": "4c 8d 05 fb 1e 00 00",
+          "text": "lea r8, [rip+0x1efb]",
+          "note": "0x140003000 in .data"
+        }
+      ],
+      "limitations": [
+        "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+        "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+        "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+      ]
+    },
+    {
+      "kind": "disasm",
+      "title": "call to KERNEL32.dll!WriteProcessMemory in .text",
+      "section": ".text",
+      "offset": 1249,
+      "address": "0x1400010e1",
+      "arch": "x86-64",
+      "lines": [
+        {
+          "address": "0x1400010e1",
+          "offset": 1249,
+          "bytes": "c7 44 24 20 40 00 00 00",
+          "text": "mov dword ptr [rsp+0x20], 0x40"
+        },
+        {
+          "address": "0x1400010e9",
+          "offset": 1257,
+          "bytes": "ff 15 b1 10 00 00",
+          "text": "call qword ptr [rip+0x10b1]",
+          "note": "KERNEL32.dll!VirtualAllocEx"
+        },
+        {
+          "address": "0x1400010ef",
+          "offset": 1263,
+          "bytes": "48 89 44 24 50",
+          "text": "mov qword ptr [rsp+0x50], rax"
+        },
+        {
+          "address": "0x1400010f4",
+          "offset": 1268,
+          "bytes": "48 8b 4c 24 48",
+          "text": "mov rcx, qword ptr [rsp+0x48]"
+        },
+        {
+          "address": "0x1400010f9",
+          "offset": 1273,
+          "bytes": "48 8b 54 24 50",
+          "text": "mov rdx, qword ptr [rsp+0x50]"
+        },
+        {
+          "address": "0x1400010fe",
+          "offset": 1278,
+          "bytes": "4c 8d 05 fb 1e 00 00",
+          "text": "lea r8, [rip+0x1efb]",
+          "note": "0x140003000 in .data"
+        },
+        {
+          "address": "0x140001105",
+          "offset": 1285,
+          "bytes": "41 b9 00 02 00 00",
+          "text": "mov r9d, 0x200"
+        },
+        {
+          "address": "0x14000110b",
+          "offset": 1291,
+          "bytes": "48 c7 44 24 20 00 00 00 00",
+          "text": "mov qword ptr [rsp+0x20], 0x0"
+        },
+        {
+          "address": "0x140001114",
+          "offset": 1300,
+          "bytes": "ff 15 8e 10 00 00",
+          "text": "call qword ptr [rip+0x108e]",
+          "note": "KERNEL32.dll!WriteProcessMemory",
+          "highlight": true
+        },
+        {
+          "address": "0x14000111a",
+          "offset": 1306,
+          "bytes": "48 8b 4c 24 48",
+          "text": "mov rcx, qword ptr [rsp+0x48]"
+        },
+        {
+          "address": "0x14000111f",
+          "offset": 1311,
+          "bytes": "31 d2",
+          "text": "xor edx, edx"
+        },
+        {
+          "address": "0x140001121",
+          "offset": 1313,
+          "bytes": "45 31 c0",
+          "text": "xor r8d, r8d"
+        },
+        {
+          "address": "0x140001124",
+          "offset": 1316,
+          "bytes": "4c 8b 4c 24 50",
+          "text": "mov r9, qword ptr [rsp+0x50]"
+        }
+      ],
+      "limitations": [
+        "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+        "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+        "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+      ]
+    },
+    {
+      "kind": "disasm",
+      "title": "call to KERNEL32.dll!CreateRemoteThread in .text",
+      "section": ".text",
+      "offset": 1300,
+      "address": "0x140001114",
+      "arch": "x86-64",
+      "lines": [
+        {
+          "address": "0x140001114",
+          "offset": 1300,
+          "bytes": "ff 15 8e 10 00 00",
+          "text": "call qword ptr [rip+0x108e]",
+          "note": "KERNEL32.dll!WriteProcessMemory"
+        },
+        {
+          "address": "0x14000111a",
+          "offset": 1306,
+          "bytes": "48 8b 4c 24 48",
+          "text": "mov rcx, qword ptr [rsp+0x48]"
+        },
+        {
+          "address": "0x14000111f",
+          "offset": 1311,
+          "bytes": "31 d2",
+          "text": "xor edx, edx"
+        },
+        {
+          "address": "0x140001121",
+          "offset": 1313,
+          "bytes": "45 31 c0",
+          "text": "xor r8d, r8d"
+        },
+        {
+          "address": "0x140001124",
+          "offset": 1316,
+          "bytes": "4c 8b 4c 24 50",
+          "text": "mov r9, qword ptr [rsp+0x50]"
+        },
+        {
+          "address": "0x140001129",
+          "offset": 1321,
+          "bytes": "48 c7 44 24 20 00 00 00 00",
+          "text": "mov qword ptr [rsp+0x20], 0x0"
+        },
+        {
+          "address": "0x140001132",
+          "offset": 1330,
+          "bytes": "48 c7 44 24 28 00 00 00 00",
+          "text": "mov qword ptr [rsp+0x28], 0x0"
+        },
+        {
+          "address": "0x14000113b",
+          "offset": 1339,
+          "bytes": "48 c7 44 24 30 00 00 00 00",
+          "text": "mov qword ptr [rsp+0x30], 0x0"
+        },
+        {
+          "address": "0x140001144",
+          "offset": 1348,
+          "bytes": "ff 15 66 10 00 00",
+          "text": "call qword ptr [rip+0x1066]",
+          "note": "KERNEL32.dll!CreateRemoteThread",
+          "highlight": true
+        },
+        {
+          "address": "0x14000114a",
+          "offset": 1354,
+          "bytes": "48 8b 4c 24 40",
+          "text": "mov rcx, qword ptr [rsp+0x40]"
+        },
+        {
+          "address": "0x14000114f",
+          "offset": 1359,
+          "bytes": "48 8d 15 ba 1e 00 00",
+          "text": "lea rdx, [rip+0x1eba]",
+          "note": "0x140003010 in .data"
+        },
+        {
+          "address": "0x140001156",
+          "offset": 1366,
+          "bytes": "ff 15 34 10 00 00",
+          "text": "call qword ptr [rip+0x1034]",
+          "note": "KERNEL32.dll!GetProcAddress"
+        },
+        {
+          "address": "0x14000115c",
+          "offset": 1372,
+          "bytes": "31 c9",
+          "text": "xor ecx, ecx"
+        }
+      ],
+      "limitations": [
+        "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+        "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+        "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+      ]
+    },
+    {
+      "kind": "disasm",
+      "title": "call to KERNEL32.dll!OpenProcess in .text",
+      "section": ".text",
+      "offset": 1173,
+      "address": "0x140001095",
+      "arch": "x86-64",
+      "lines": [
+        {
+          "address": "0x140001095",
+          "offset": 1173,
+          "bytes": "48 c7 44 24 20 00 00 00 00",
+          "text": "mov qword ptr [rsp+0x20], 0x0"
+        },
+        {
+          "address": "0x14000109e",
+          "offset": 1182,
+          "bytes": "ff 15 1c 13 00 00",
+          "text": "call qword ptr [rip+0x131c]",
+          "note": "URLMON.dll!URLDownloadToFileA"
+        },
+        {
+          "address": "0x1400010a4",
+          "offset": 1188,
+          "bytes": "48 8d 0d 55 1f 00 00",
+          "text": "lea rcx, [rip+0x1f55]",
+          "note": "0x140003000 in .data"
+        },
+        {
+          "address": "0x1400010ab",
+          "offset": 1195,
+          "bytes": "ff 15 e7 10 00 00",
+          "text": "call qword ptr [rip+0x10e7]",
+          "note": "KERNEL32.dll!LoadLibraryA"
+        },
+        {
+          "address": "0x1400010b1",
+          "offset": 1201,
+          "bytes": "48 89 44 24 40",
+          "text": "mov qword ptr [rsp+0x40], rax"
+        },
+        {
+          "address": "0x1400010b6",
+          "offset": 1206,
+          "bytes": "b9 ff ff 1f 00",
+          "text": "mov ecx, 0x1fffff"
+        },
+        {
+          "address": "0x1400010bb",
+          "offset": 1211,
+          "bytes": "31 d2",
+          "text": "xor edx, edx"
+        },
+        {
+          "address": "0x1400010bd",
+          "offset": 1213,
+          "bytes": "41 b8 a4 01 00 00",
+          "text": "mov r8d, 0x1a4"
+        },
+        {
+          "address": "0x1400010c3",
+          "offset": 1219,
+          "bytes": "ff 15 ef 10 00 00",
+          "text": "call qword ptr [rip+0x10ef]",
+          "note": "KERNEL32.dll!OpenProcess",
+          "highlight": true
+        },
+        {
+          "address": "0x1400010c9",
+          "offset": 1225,
+          "bytes": "48 89 44 24 48",
+          "text": "mov qword ptr [rsp+0x48], rax"
+        },
+        {
+          "address": "0x1400010ce",
+          "offset": 1230,
+          "bytes": "48 8b 4c 24 48",
+          "text": "mov rcx, qword ptr [rsp+0x48]"
+        },
+        {
+          "address": "0x1400010d3",
+          "offset": 1235,
+          "bytes": "31 d2",
+          "text": "xor edx, edx"
+        },
+        {
+          "address": "0x1400010d5",
+          "offset": 1237,
+          "bytes": "41 b8 00 10 00 00",
+          "text": "mov r8d, 0x1000"
+        }
+      ],
+      "limitations": [
+        "x86-64 code decoded as a linear sweep (ARM64 and other instruction sets are not supported): data inside a code section can be read as instructions, and one wrong byte shifts what follows.",
+        "Only calls through the import table and import thunks are found: functions resolved at run time are invisible, and packed or protected code hides its real calls.",
+        "A view of the code, not a decompiler, an emulator or a verdict: nothing was executed, and the code shows what is called, not why."
+      ]
+    }
+  ],
+  "limitations": [
+    "API presence alone proves nothing: legitimate software (debuggers, installers, security and remote-support tools, games, browsers) imports the same functions.",
+    "Debuggers, profilers, anti-virus and game overlays legitimately use remote memory and thread APIs.",
+    "Functions resolved at run time (GetProcAddress, dlsym) or hidden by a packer are not in the import table, so a missing cluster proves nothing either."
+  ]
+}

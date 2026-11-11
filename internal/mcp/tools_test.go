@@ -47,7 +47,7 @@ func listTools(t *testing.T, version string) []map[string]any {
 }
 
 func TestToolsListContract(t *testing.T) {
-	wantNames := []string{"analyze_file", "list_strings", "hash_file", "entropy_profile", "diff_files"}
+	wantNames := []string{"analyze_file", "list_strings", "hash_file", "entropy_profile", "diff_files", "disassemble", "find_calls", "read_bytes"}
 	tests := []struct {
 		version         string
 		wantAnnotations bool

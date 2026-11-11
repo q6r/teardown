@@ -26,6 +26,15 @@ type Options struct {
 	Width int
 	// Verbose shows the risk basis, every limitation and more evidence.
 	Verbose bool
+	// HideCode leaves the code blocks of the findings out of the terminal
+	// output (the CLI's --no-code). To leave code out of any other output, render
+	// the copy that [report.Report.WithoutCode] returns.
+	HideCode bool
+	// CodeAll shows every code block of a finding (at most [report.MaxCodeBlocks])
+	// in full (at most [report.MaxCodeLines] lines each) instead of the first
+	// [DefaultCodeBlocks] blocks of at most [DefaultCodeLines] lines, around the
+	// flagged line (the CLI's --code-all). It has no effect with HideCode.
+	CodeAll bool
 }
 
 func (o Options) width() int {

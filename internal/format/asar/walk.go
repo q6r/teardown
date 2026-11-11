@@ -24,7 +24,11 @@ const (
 	maxPathBytes = 4096
 )
 
-var errDepth = errors.New("the index nests too deeply")
+var (
+	errDepth = errors.New("the index nests too deeply")
+	// errStop ends a walk that the visitor asked to stop; it is not a failure.
+	errStop = errors.New("the walk was stopped by its caller")
+)
 
 // fileRef locates a packed file: off is relative to the start of the file data.
 type fileRef struct {
@@ -57,6 +61,10 @@ type walker struct {
 	badExamples []string
 	pkg         map[string]fileRef
 	scripts     []fileRef
+
+	// visit, when set, receives every packed file with a valid location; it
+	// returns false to stop the walk.
+	visit func(File) bool
 }
 
 func newWalker(r io.ReaderAt, size int64, lim limits.Limits, d *Details) *walker {
@@ -199,12 +207,12 @@ func (w *walker) node(path string, depth int) error {
 		w.d.DirectoryCount++
 		return nil
 	}
-	w.file(path, n)
-	return nil
+	return w.file(path, n)
 }
 
-// file records a file node and validates its offset against the archive.
-func (w *walker) file(path string, n nodeAttrs) {
+// file records a file node and validates its offset against the archive. It
+// returns errStop when the visitor asked to stop.
+func (w *walker) file(path string, n nodeAttrs) error {
 	d := w.d
 	d.FileCount++
 	if len(d.Files) < w.lim.MaxList {
@@ -221,10 +229,10 @@ func (w *walker) file(path string, n nodeAttrs) {
 	}
 	switch {
 	case n.link:
-		return
+		return nil
 	case n.unpacked:
 		d.UnpackedCount++
-		return
+		return nil
 	}
 	off, err := strconv.ParseInt(n.offset, 10, 64)
 	if err != nil || off < 0 || n.size < 0 || off > w.dataSize || n.size > w.dataSize-off {
@@ -232,7 +240,7 @@ func (w *walker) file(path string, n nodeAttrs) {
 		if len(w.badExamples) < maxExamples {
 			w.badExamples = append(w.badExamples, binio.Printable(path, 80))
 		}
-		return
+		return nil
 	}
 	ref := fileRef{path: path, off: off, size: n.size}
 	switch {
@@ -243,6 +251,15 @@ func (w *walker) file(path string, n nodeAttrs) {
 	case isScript(path) && !underNodeModules(path) && len(w.scripts) < maxJSFiles:
 		w.scripts = append(w.scripts, ref)
 	}
+	if w.visit != nil && !w.visit(w.fileOf(ref)) {
+		return errStop
+	}
+	return nil
+}
+
+// fileOf describes a located file for a visitor.
+func (w *walker) fileOf(ref fileRef) File {
+	return File{Path: binio.Printable(ref.path, maxNameLen), Offset: w.d.DataOffset + ref.off, Size: ref.size}
 }
 
 // notes reports index-level problems found by the walk.

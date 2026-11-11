@@ -18,7 +18,10 @@ const instructions = "teardown is a static triage tool for binaries and app pack
 	"ZIP-family archives, WebAssembly, GGUF/safetensors, SQLite and more). It never executes the files it analyses. " +
 	"Start with analyze_file (type, hashes, entropy, sections, imports, hardening, findings with evidence and limitations, 0-100 triage risk). " +
 	"Use list_strings to page through extracted strings (secrets are redacted), hash_file for digests only, entropy_profile to look for packed regions, " +
-	"and diff_files to compare two builds. Paths must lie inside the directories the server was started with (--root); relative paths resolve against them. " +
+	"and diff_files to compare two builds. Findings can carry the code behind them (instruction windows, hex windows, source lines): read_bytes shows " +
+	"the raw bytes at a file offset, disassemble the x86 and x86-64 instructions at an address or offset (a linear sweep: data can be shown as code) " +
+	"and find_calls the places in a PE image that call an imported function, with the instructions around each call. " +
+	"Paths must lie inside the directories the server was started with (--root); relative paths resolve against them. " +
 	"Findings and the risk score are triage hints, not verdicts: read each finding's limitations."
 
 // errCallTimeout is the cancellation cause of a call that ran out of time.

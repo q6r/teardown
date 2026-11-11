@@ -54,6 +54,7 @@ func Markdown(w io.Writer, rep *report.Report) error {
 			}
 			line("")
 		}
+		sb.WriteString(markdownCode(&f))
 		if len(f.Limitations) > 0 {
 			line("Limitations:")
 			line("")

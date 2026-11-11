@@ -258,6 +258,15 @@ func (r *Report) Normalize() {
 		if r.Findings[i].Limitations == nil {
 			r.Findings[i].Limitations = []string{}
 		}
+		for j := range r.Findings[i].Code {
+			b := &r.Findings[i].Code[j]
+			if b.Lines == nil {
+				b.Lines = []CodeLine{}
+			}
+			if b.Limitations == nil {
+				b.Limitations = []string{}
+			}
+		}
 	}
 	if r.Risk.Basis == nil {
 		r.Risk.Basis = []string{}

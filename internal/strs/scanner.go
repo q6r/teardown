@@ -101,6 +101,7 @@ type Scanner struct {
 	cls         [cPlain][]item
 	nClassified int
 	plain       []item
+	pem         pemState // the multi-line private key being read, if any
 
 	capped    bool
 	split     bool
@@ -320,7 +321,12 @@ func isNoise(b []byte) bool {
 
 // emit classifies a finished run and files it.
 func (s *Scanner) emit(off int64, enc encoding, raw []byte) {
-	if s.done || len(raw) < s.opts.MinLength || isNoise(raw) {
+	if s.done {
+		return
+	}
+	// The lines of a private key follow its header and are part of the secret,
+	// whatever their length: this looks at every run, before the filters below.
+	if s.keyBody(off, enc, raw) || len(raw) < s.opts.MinLength || isNoise(raw) {
 		return
 	}
 	if s.total >= s.maxTotal {
@@ -330,6 +336,13 @@ func (s *Scanner) emit(off int64, enc encoding, raw []byte) {
 	s.total++
 	str := string(raw)
 	c := classify(str)
+	if c.cat == cSecret && c.kind == kindPEM && pemHeaderEnd.MatchString(str) {
+		unit := int64(1)
+		if enc == encUTF16 {
+			unit = 2
+		}
+		s.openKey(enc, off+int64(len(raw))*unit)
+	}
 	s.counts[c.cat]++
 	it := item{off: off, enc: enc, cat: c.cat, kind: c.kind, value: str}
 	if c.cat == cSecret {

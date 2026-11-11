@@ -73,7 +73,54 @@
   .td-finding__meta { flex: none; margin-left: auto; }
 }
 .td-tagrow { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
-.td-finding__body { max-width: 110ch; padding-top: 4px; }
+.td-finding__body { padding-top: 4px; }
+.td-finding__body .td-list { max-width: 110ch; }
+.td-codetag { gap: 5px; }
+
+/* code evidence: the Code panel of a finding. A block is a well (the kit's code ground) with a header, a table
+ * of lines that scrolls sideways inside the block and never the page, and a foot for notices and limits. */
+.td-code { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.td-code__block { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-1); }
+.td-code__head { display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px 9px 12px; border-bottom: 1px solid var(--line); }
+.td-code__icon { display: inline-grid; flex: none; place-items: center; width: 22px; height: 22px; color: var(--ink-3); }
+.td-code__titles { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-width: 0; }
+.td-code__title { color: var(--ink-1); font-size: 13px; font-weight: 600; line-height: 22px; overflow-wrap: anywhere; }
+.td-code__meta { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.td-code__meta .a-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.td-code__kind { color: var(--ink-1); }
+.td-code__copy { flex: none; }
+.td-code__scroll { max-width: 100%; padding: 6px 0; overflow-x: auto; }
+.td-code__scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.td-code__table { width: 100%; min-width: max-content; border-collapse: separate; border-spacing: 0; font: 500 12.5px/1.65 var(--font-mono); }
+.td-code__table td { padding: 0 16px 0 0; vertical-align: top; white-space: pre; }
+.td-code__table td:first-child { padding-left: 9px; border-left: 3px solid transparent; }
+.td-code__table td:not(:last-child) { width: 1px; } /* shrink to the content; the last column takes the rest (a percentage width there made the table a million pixels wide) */
+.td-code__table td:last-child { padding-right: 14px; }
+.td-code__row:hover { background: var(--fill); }
+.td-code__row.is-hit, .td-code__row.is-hit:hover { background: var(--accent-soft); }
+.td-code__row.is-hit td:first-child { border-left-color: var(--accent); }
+.td-code__row.is-hit .td-code__text { font-weight: 600; }
+.td-code__row.is-hit .td-code__note { color: var(--ink-1); }
+.td-code__flag { display: inline-flex; width: 16px; margin-right: 4px; color: var(--accent); vertical-align: middle; }
+.td-code__addr, .td-code__bytes, .td-code__ascii, .td-code__lineno { color: var(--ink-2); }
+.td-code__lineno { text-align: right; user-select: none; }
+.td-code__text { color: var(--ink-1); }
+.td-code__note { color: var(--ink-2); }
+.td-code__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 6px 8px 6px 12px; border-top: 1px solid var(--line); color: var(--ink-2); font-size: 12px; }
+.td-code__foot .a-btn { margin-left: -4px; }
+.td-code__cut { display: inline-flex; align-items: center; gap: 6px; }
+.td-code__cut .a-icon { color: var(--ink-3); }
+.td-code__limits { padding: 10px 12px 12px; border-top: 1px solid var(--line); }
+.td-code > .td-code__limits { padding: 2px 0 0; border-top: 0; }
+.td-code__more { align-self: flex-start; }
+.td-list--small { gap: 3px; font-size: 12px; }
+@media (max-width: 560px) {
+  /* on a phone the copy button keeps only its icon (its name stays for screen readers): the title gets the room */
+  .td-code__table { font-size: 12px; }
+  .td-code__head { padding-right: 8px; }
+  .td-code__copy { width: 30px; padding: 0; }
+  .td-code__copylabel { display: none; }
+}
 
 /* hardening: the checks side by side on a wide card */
 .td-checks { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 40px; margin: 12px 0 0; padding: 0; list-style: none; }
@@ -130,6 +177,7 @@
 .td-fallback table { width: 100%; border-collapse: collapse; }
 .td-fallback th, .td-fallback td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 .td-fallback code { font-family: var(--font-mono); overflow-wrap: anywhere; }
+.td-fallback pre { margin: 6px 0 12px; padding: 10px 12px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-1); font: 500 12.5px/1.6 var(--font-mono); }
 .td-fallback .td-sev { font-weight: 600; text-transform: uppercase; }
 
 /* the sub bar keeps the facts that matter on a narrow screen: the risk pill stays, size and type go (the header has them) */

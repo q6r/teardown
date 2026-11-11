@@ -37,7 +37,10 @@ type secretRule struct {
 // secretRules lists the recognised secrets, longest and most specific first.
 // The patterns have no word-boundary anchors on purpose: a secret glued to
 // other text (key=AKIA..., "token":"ghp_...") must still be redacted, so over-
-// redaction is the accepted failure mode.
+// redaction is the accepted failure mode. For the same reason a private-key
+// header takes the rest of its string with it: a key written on one line (with
+// escaped newlines, in a script or a configuration file) puts the key material
+// right behind the header, where no pattern of its own could recognise it.
 var secretRules = []secretRule{
 	{
 		kind: kindJWT,
@@ -57,7 +60,7 @@ var secretRules = []secretRule{
 	{
 		kind: kindPEM,
 		gate: func(s string) bool { return strings.Contains(s, "-----BEGIN") },
-		re:   regexp.MustCompile(`-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----`),
+		re:   regexp.MustCompile(`-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----.*`),
 	},
 	{
 		kind: kindAWS,

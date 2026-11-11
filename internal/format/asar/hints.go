@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"slices"
 
 	"github.com/q6r/teardown/internal/binio"
+	"github.com/q6r/teardown/internal/limits"
 )
 
 const (
@@ -57,9 +59,60 @@ func (w *walker) inspect(ctx context.Context) []string {
 		}
 	}
 
-	cut := 0
+	hits, cut := w.scan(ctx)
+	for _, h := range hits {
+		w.d.Hints = append(w.d.Hints, Hint{ID: h.ID, Evidence: h.evidence})
+	}
+	if cut > 0 {
+		notes = append(notes, fmt.Sprintf("%d scripts are larger than %d KiB and were searched only in their first %d KiB", cut, maxScriptScan>>10, maxScriptScan>>10))
+	}
+	return notes
+}
+
+// ScriptHit is one match of a hint pattern in an application script, located in
+// the archive file. Parse reports the same matches, as text, in Details.Hints.
+type ScriptHit struct {
+	// ID is the hint identifier (see [Hint]).
+	ID string
+	// Script is the script that holds the match.
+	Script File
+	// Start and End delimit the matched text as byte offsets into the content of
+	// the script (End is exclusive). Only the first 512 KiB of a script are searched.
+	Start, End int
+
+	// evidence is the text Parse reports for the hint.
+	evidence string
+}
+
+// Hits returns where the application scripts of the archive match the hint
+// patterns, in the order Parse lists the hints: the first match of each pattern
+// in each of the first 50 scripts outside node_modules, at most 100 in all. The
+// files and the 512 KiB window are the ones Parse searches, so the two agree.
+//
+// It returns (nil, err) when r is not an ASAR archive and ctx's error when the
+// context ends. A damaged index yields the matches found before the damage.
+func Hits(ctx context.Context, r io.ReaderAt, size int64, lim limits.Limits) ([]ScriptHit, error) {
+	lim = lim.Normalize()
+	res, index, err := open(r, size, lim)
+	if res == nil {
+		return nil, err
+	}
+	if index == nil {
+		return nil, nil
+	}
+	w := newWalker(r, size, lim, &res.Details)
+	if err := w.run(ctx, index); err != nil && ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	hits, _ := w.scan(ctx)
+	return hits, ctx.Err()
+}
+
+// scan searches the collected scripts for the hint patterns. cut counts the
+// scripts that are longer than the search window.
+func (w *walker) scan(ctx context.Context) (hits []ScriptHit, cut int) {
 	for _, ref := range w.scripts {
-		if ctx.Err() != nil || len(w.d.Hints) >= maxHints {
+		if ctx.Err() != nil || len(hits) >= maxHints {
 			break
 		}
 		n := min(ref.size, maxScriptScan)
@@ -71,18 +124,15 @@ func (w *walker) inspect(ctx context.Context) []string {
 			continue
 		}
 		for _, p := range hintPatterns {
-			if loc := p.re.FindIndex(data); loc != nil && len(w.d.Hints) < maxHints {
-				w.d.Hints = append(w.d.Hints, Hint{
-					ID:       p.id,
-					Evidence: binio.Printable(ref.path, 160) + ": " + binio.Printable(string(data[loc[0]:loc[1]]), maxSnippet),
+			if loc := p.re.FindIndex(data); loc != nil && len(hits) < maxHints {
+				hits = append(hits, ScriptHit{
+					ID: p.id, Script: w.fileOf(ref), Start: loc[0], End: loc[1],
+					evidence: binio.Printable(ref.path, 160) + ": " + binio.Printable(string(data[loc[0]:loc[1]]), maxSnippet),
 				})
 			}
 		}
 	}
-	if cut > 0 {
-		notes = append(notes, fmt.Sprintf("%d scripts are larger than %d KiB and were searched only in their first %d KiB", cut, maxScriptScan>>10, maxScriptScan>>10))
-	}
-	return notes
+	return hits, cut
 }
 
 // readPackage reads and decodes a package.json member.

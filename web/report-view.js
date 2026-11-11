@@ -3,6 +3,8 @@
  * aurora-charts.js. Everything that comes out of the analysed file is untrusted: it is only ever
  * handed to Aurora.el (textContent) and passes through vis(), which makes bidirectional controls and
  * other invisible characters visible. No markup is built from data anywhere in this file.
+ * Each finding's `code` blocks (instructions around a call site, hex windows, source lines) are drawn as the Code
+ * panel inside the finding's disclosure: see "code evidence" below.
  *
  *   TeardownView.render(parent, report, {
  *     actions:       Node[]                     // buttons for the page header (the host decides)
@@ -152,6 +154,183 @@
     return first.filter((k) => keys.indexOf(k) >= 0).concat(keys.filter((k) => first.indexOf(k) < 0).sort());
   }
 
+  /* ───────────────────────── code evidence ───────────────────────── */
+  /* The Code panel of a finding: the blocks of `finding.code` (instructions around a call site, a hex window, source
+   * lines) as small monospace tables. The caps below are those of the Go model (internal/report/code.go); a test
+   * keeps them equal, so the page and the Go renderers clip alike. Everything shown passes through vis(). */
+  const MAX_CODE_BLOCKS = 12;
+  const MAX_CODE_LINES = 64;
+  const MAX_CODE_CHARS = 200;
+  const FIRST_BLOCKS = 3; // blocks open before "Show more code blocks"
+  const FIRST_LINES = 24; // lines of a block shown before "Show more lines"
+  const MAX_LIMITS = 8;
+  const NO_LIMITS = 'No limits were stated for this block: treat it as a partial, unverified view of the file.';
+  const CODE_KINDS = {
+    disasm: { icon: 'code', label: 'Disassembly', cols: 'address, bytes and instruction' },
+    hex: { icon: 'hash', label: 'Hex dump', cols: 'offset, bytes and text' },
+    source: { icon: 'file-text', label: 'Source', cols: 'line number and text' },
+    code: { icon: 'code', label: 'Code', cols: 'address, bytes and text' }, // a kind this page does not know: plain lines
+  };
+  const kindOf = (k) => (typeof k === 'string' && Object.prototype.hasOwnProperty.call(CODE_KINDS, k) ? k : 'code');
+  const clipChars = (s, n) => {
+    const t = String(s == null ? '' : s);
+    if (t.length <= n) return t;
+    const all = Array.from(t);
+    return all.length > n ? all.slice(0, n - 1).join('') + '…' : t;
+  };
+  const shown = (s, n) => vis(clipChars(s, n));
+  // the index of the first of n items that keep the first flagged one near the middle (the same rule as the Go model)
+  const windowStart = (items, n, isHit) => {
+    if (items.length <= n) return 0;
+    const at = items.findIndex(isHit);
+    return Math.max(0, Math.min((at < 0 ? 0 : at) - Math.floor(n / 2), items.length - n));
+  };
+  const rowAddress = (kind, l) => {
+    if (kind === 'hex') return Math.max(0, Math.round(+l.offset || 0)).toString(16).padStart(8, '0');
+    if (kind === 'source') return l.line > 0 ? String(Math.round(l.line)) : '';
+    return typeof l.address === 'string' && l.address ? shown(l.address, 20) : hex(l.offset);
+  };
+
+  function codeBlock(raw) {
+    let lines = list(raw.lines).filter(isObject);
+    let truncated = raw.truncated === true;
+    if (lines.length > MAX_CODE_LINES) {
+      const start = windowStart(lines, MAX_CODE_LINES, (l) => l.highlight === true);
+      lines = lines.slice(start, start + MAX_CODE_LINES);
+      truncated = true;
+    }
+    const kind = kindOf(raw.kind);
+    const limits = list(raw.limitations).filter((x) => typeof x === 'string' && x.trim()).slice(0, MAX_LIMITS).map((x) => shown(x, 400));
+    return {
+      kind, truncated,
+      title: shown(raw.title, MAX_CODE_CHARS), file: shown(raw.file, MAX_CODE_CHARS), section: shown(raw.section, MAX_CODE_CHARS), arch: shown(raw.arch, MAX_CODE_CHARS),
+      address: typeof raw.address === 'string' ? shown(raw.address, 20) : '', offset: raw.offset,
+      limits: limits.length ? limits : [NO_LIMITS],
+      rows: lines.map((l) => ({ hit: l.highlight === true, addr: rowAddress(kind, l), bytes: shown(l.bytes, 47), text: shown(l.text, MAX_CODE_CHARS), note: shown(l.note, MAX_CODE_CHARS) })),
+    };
+  }
+
+  // The blocks a finding shows: only those that have lines, at most MAX_CODE_BLOCKS, each held to MAX_CODE_LINES lines.
+  function codeBlocks(f) {
+    const usable = list(f.code).filter((b) => isObject(b) && list(b.lines).some(isObject));
+    return { blocks: usable.slice(0, MAX_CODE_BLOCKS).map(codeBlock), omitted: Math.max(0, usable.length - MAX_CODE_BLOCKS) };
+  }
+
+  // The columns of a block's table: the first cell carries the marker of the flagged line (an arrow and a hidden label,
+  // so the mark does not depend on colour).
+  function codeColumns(b) {
+    const flag = (r) => el('span', { class: 'td-code__flag' }, r.hit ? [icon('chevron-right', { size: 13 }), el('span', { class: 'a-sr-only' }, 'Flagged line: ')] : null);
+    if (b.kind === 'source') {
+      return [{ label: 'Line', cls: 'td-code__lineno', cell: (r) => [flag(r), r.addr] }, { label: 'Text', cls: 'td-code__text', cell: (r) => r.text }];
+    }
+    if (b.kind === 'hex') {
+      return [
+        { label: 'Offset', cls: 'td-code__addr', cell: (r) => [flag(r), r.addr] },
+        { label: 'Bytes', cls: 'td-code__bytes', cell: (r) => r.bytes },
+        { label: 'Text', cls: 'td-code__ascii', cell: (r) => r.text },
+      ];
+    }
+    const cols = [{ label: 'Address', cls: 'td-code__addr', cell: (r) => [flag(r), r.addr] }];
+    if (b.rows.some((r) => r.bytes)) cols.push({ label: 'Bytes', cls: 'td-code__bytes', cell: (r) => r.bytes });
+    cols.push({ label: 'Instruction', cls: 'td-code__text', cell: (r) => r.text });
+    if (b.rows.some((r) => r.note)) cols.push({ label: 'Note', cls: 'td-code__note', cell: (r) => (r.note ? `; ${r.note}` : '') });
+    return cols;
+  }
+
+  // The block as plain text for the clipboard: its title, then the lines in aligned columns (the flagged line is not marked).
+  function codeText(b) {
+    const w = { addr: 0, bytes: 0 };
+    b.rows.forEach((r) => { w.addr = Math.max(w.addr, r.addr.length); w.bytes = Math.max(w.bytes, r.bytes.length); });
+    const line = (r) => {
+      if (b.kind === 'source') return `${r.addr.padStart(w.addr)} | ${r.text}`.trimEnd();
+      if (b.kind === 'hex') return `${r.addr.padEnd(w.addr)}  ${r.bytes.padEnd(w.bytes)}  |${r.text}|`;
+      return `${r.addr.padEnd(w.addr)}  ${w.bytes ? r.bytes.padEnd(w.bytes) + '  ' : ''}${r.text}${r.note ? '  ; ' + r.note : ''}`.trimEnd();
+    };
+    return [b.title || CODE_KINDS[b.kind].label].concat(b.rows.map(line)).join('\n');
+  }
+
+  function codeCopyButton(b, name) {
+    const label = el('span', { class: 'td-code__copylabel' }, 'Copy');
+    const btn = el('button', { class: 'a-btn a-btn--sm td-code__copy', type: 'button', title: 'Copy this block as plain text' }, icon('copy', { size: 14 }), label, el('span', { class: 'a-sr-only' }, ` code block: ${name}`));
+    btn.addEventListener('click', () => {
+      A.copy(codeText(b), { label: 'Code block copied' }).then((ok) => {
+        if (!ok) return;
+        label.textContent = 'Copied';
+        setTimeout(() => { label.textContent = 'Copy'; }, 1600);
+      });
+    });
+    return btn;
+  }
+
+  function limitsList(items) {
+    return el('div', { class: 'td-code__limits' }, el('div', { class: 'td-label' }, 'What this does not show'), bulletList(items, 'td-list--small'));
+  }
+
+  function codeBlockEl(b, ownLimits) {
+    const info = CODE_KINDS[b.kind];
+    const name = b.title || info.label;
+    const titleId = A.uid('td-code-title');
+    const meta = [info.label, b.file, b.section, b.kind === 'disasm' && b.address ? b.address : b.kind === 'hex' ? `file offset ${hex(b.offset)}` : '', b.arch].filter(Boolean);
+    const head = el('div', { class: 'td-code__head' },
+      el('span', { class: 'td-code__icon', 'aria-hidden': 'true' }, icon(info.icon, { size: 15 })),
+      el('div', { class: 'td-code__titles' }, el('span', { class: 'td-code__title', id: titleId }, name), el('span', { class: 'td-code__meta' }, meta.map((m, i) => el('span', { class: i ? 'a-tag' : 'a-tag td-code__kind' }, m)))),
+      codeCopyButton(b, name));
+
+    // the lines: a window around the flagged one first, the rest behind a button
+    const cols = codeColumns(b);
+    const start = windowStart(b.rows, FIRST_LINES, (r) => r.hit);
+    const hidden = [];
+    const body = el('tbody', b.rows.map((r, i) => {
+      const tr = el('tr', { class: r.hit ? 'td-code__row is-hit' : 'td-code__row' }, cols.map((c) => el('td', { class: c.cls }, c.cell(r))));
+      if (i < start || i >= start + FIRST_LINES) { tr.hidden = true; hidden.push(tr); }
+      return tr;
+    }));
+    const table = el('table', { class: 'td-code__table' },
+      el('caption', { class: 'a-sr-only' }, `${name}: ${info.cols}`),
+      el('thead', { class: 'a-sr-only' }, el('tr', cols.map((c) => el('th', { scope: 'col' }, c.label)))),
+      body);
+    const scroll = el('div', { class: 'td-code__scroll', tabindex: '0', role: 'region', 'aria-labelledby': titleId }, table);
+
+    const foot = el('div', { class: 'td-code__foot' });
+    if (hidden.length) {
+      const closed = `Show ${plural(hidden.length, 'more line')}`;
+      const more = el('button', { class: 'a-btn a-btn--sm a-btn--ghost', type: 'button', 'aria-expanded': 'false' }, closed);
+      more.addEventListener('click', () => {
+        const open = more.getAttribute('aria-expanded') !== 'true';
+        hidden.forEach((tr) => { tr.hidden = !open; });
+        more.setAttribute('aria-expanded', String(open));
+        more.textContent = open ? 'Show fewer lines' : closed;
+      });
+      foot.appendChild(more);
+    }
+    if (b.truncated) foot.appendChild(el('span', { class: 'td-code__cut' }, icon('info', { size: 13 }), 'Shown in part: the window is bounded and the code goes on beyond it.'));
+    return el('div', { class: 'td-code__block' }, head, scroll, foot.childNodes.length ? foot : null, ownLimits ? limitsList(b.limits) : null);
+  }
+
+  // The "Code" part of a finding: its blocks (the first few open, the rest behind a button) and, once, what they do not show.
+  function codeSection(found) {
+    const { blocks, omitted } = found;
+    if (!blocks.length) return null;
+    const labelId = A.uid('td-code-label');
+    const box = el('div', { class: 'td-code', role: 'group', 'aria-labelledby': labelId }, el('div', { class: 'td-label', id: labelId }, 'Code'));
+    const same = blocks.every((b) => b.limits.join('\n') === blocks[0].limits.join('\n'));
+    const later = [];
+    blocks.forEach((b, i) => {
+      const node = codeBlockEl(b, !same);
+      if (i >= FIRST_BLOCKS) { node.hidden = true; later.push(node); }
+      box.appendChild(node);
+    });
+    if (later.length) {
+      const label = `Show ${plural(later.length, 'more code block')}`;
+      const more = el('button', { class: 'a-btn a-btn--sm td-code__more', type: 'button' }, label);
+      more.addEventListener('click', () => { later.forEach((n) => { n.hidden = false; }); more.remove(); });
+      box.appendChild(more);
+    }
+    if (omitted) box.appendChild(el('p', { class: 'td-caption a-muted' }, `${plural(omitted, 'more code block')} of this finding ${omitted === 1 ? 'is' : 'are'} not shown on this page.`));
+    if (same) box.appendChild(limitsList(blocks[0].limits));
+    return box;
+  }
+
   /* ───────────────────────── sections of the page ───────────────────────── */
   function headerBlock(rep, o) {
     const t = rep.type || {};
@@ -253,11 +432,16 @@
     c.body.appendChild(holder);
     items.forEach((f, i) => {
       const sev = A.severity(f.severity);
+      const found = codeBlocks(f);
+      const nCode = found.blocks.length + found.omitted;
       const summary = el('span', { class: 'td-finding__summary' },
         el('span', { class: 'td-finding__line' }, A.badge(sev.label, { kind: sev.kind }), el('span', { class: 'td-finding__title' }, vis(f.title))),
-        el('span', { class: 'td-finding__meta' }, tag(f.id), el('span', { class: 'a-tag' }, `${vis(f.confidence)} confidence`)));
+        el('span', { class: 'td-finding__meta' }, tag(f.id),
+          nCode ? el('span', { class: 'a-tag td-codetag', title: 'Code blocks behind this finding' }, icon('code', { size: 12 }), `${plural(nCode, 'code block')}`) : null,
+          el('span', { class: 'a-tag' }, `${vis(f.confidence)} confidence`)));
       const content = el('div', { class: 'a-stack td-finding__body' },
         list(f.evidence).length ? el('div', null, el('div', { class: 'td-label' }, 'Evidence'), bulletList(f.evidence)) : null,
+        codeSection(found),
         list(f.limitations).length ? el('div', null, el('div', { class: 'td-label' }, 'How this can be wrong'), bulletList(f.limitations)) : null);
       const d = A.details(holder, { summary, content, open: items.length <= 2 || i === 0 });
       entries.push({ node: d, sev: f.severity });

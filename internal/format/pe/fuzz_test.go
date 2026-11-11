@@ -79,8 +79,48 @@ func checkInvariants(t *testing.T, res *Result, size int64, lim limits.Limits) {
 	if !utf8.ValidString(d.PDBPath) || !utf8.ValidString(d.DotNetVersion) || !utf8.ValidString(d.ExportName) {
 		t.Fatal("details strings must be valid UTF-8")
 	}
+	checkLayout(t, res, size, lim)
 	if _, err := json.Marshal(res); err != nil {
 		t.Fatalf("result does not marshal: %v", err)
+	}
+}
+
+// checkLayout asserts what the address layout must satisfy whatever the input
+// was: slots only for recorded functions, sections that map to bytes of the file.
+func checkLayout(t *testing.T, res *Result, size int64, lim limits.Limits) {
+	t.Helper()
+	l := res.Layout
+	recorded := 0
+	for _, imp := range res.Imports {
+		recorded += len(imp.Functions)
+	}
+	if len(l.Slots) > recorded || len(l.Slots) > lim.MaxList*4 {
+		t.Fatalf("%d slots for %d recorded functions (cap %d)", len(l.Slots), recorded, lim.MaxList*4)
+	}
+	for _, s := range l.Slots {
+		if s.VA != l.ImageBase+uint64(s.RVA) || s.Function == "" || !utf8.ValidString(s.Library+s.Function) {
+			t.Fatalf("bad slot %+v", s)
+		}
+	}
+	if len(l.Sections) > lim.MaxList {
+		t.Fatalf("%d layout sections", len(l.Sections))
+	}
+	for _, s := range l.Sections {
+		if s.RawLen < 0 || s.RawLen > int64(s.RawSize) || s.Mapped() < 0 || s.Mapped() > s.RawLen || (s.RawLen > 0 && int64(s.RawOffset)+s.RawLen > size) {
+			t.Fatalf("bad layout section %+v for a %d byte file", s, size)
+		}
+		// Overlapping sections resolve to the first that holds a byte, so only the
+		// existence of the mapping is certain: an address that maps to an offset
+		// maps to an offset inside the file.
+		if s.Mapped() > 0 {
+			_, va, ok := l.SectionAtOffset(int64(s.RawOffset))
+			if !ok {
+				t.Fatalf("the first byte of %+v maps nowhere", s)
+			}
+			if _, off, ok := l.SectionAtVA(va); !ok || off < 0 || off >= size {
+				t.Fatalf("the address %#x of %+v maps to offset %d, %v", va, s, off, ok)
+			}
+		}
 	}
 }
 

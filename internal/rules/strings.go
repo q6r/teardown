@@ -138,12 +138,7 @@ func isPublicIP(s string) bool {
 func ruleNetworkIndicators(in *input) []report.Finding {
 	rep := in.rep
 	urls := uniqueValues(indicatorItems(rep, report.CatURL))
-	var public []string
-	for _, v := range uniqueValues(indicatorItems(rep, report.CatIP)) {
-		if isPublicIP(v) {
-			public = append(public, v)
-		}
-	}
+	public := uniqueValues(publicIPItems(rep))
 	domains := uniqueValues(indicatorItems(rep, report.CatDomain))
 	emails := uniqueValues(indicatorItems(rep, report.CatEmail))
 	if len(urls)+len(public)+len(domains)+len(emails) == 0 {
@@ -203,12 +198,8 @@ func ruleCommands(in *input) []report.Finding {
 	cmds := uniqueValues(items)
 	strong := 0
 	for _, c := range cmds {
-		l := strings.ToLower(c)
-		for _, m := range strongCommandMarkers {
-			if strings.Contains(l, m) {
-				strong++
-				break
-			}
+		if isStrongCommand(c) {
+			strong++
 		}
 	}
 	sev, conf := report.SeverityLow, report.ConfidenceLow
@@ -233,16 +224,7 @@ var persistenceMarkers = []string{
 }
 
 func rulePersistence(in *input) []report.Finding {
-	var hits []string
-	for _, v := range uniqueValues(indicatorItems(in.rep, report.CatRegistry)) {
-		l := strings.ToLower(v)
-		for _, m := range persistenceMarkers {
-			if strings.Contains(l, m) {
-				hits = append(hits, v)
-				break
-			}
-		}
-	}
+	hits := uniqueValues(persistenceItems(in.rep))
 	if len(hits) == 0 {
 		return nil
 	}
@@ -253,4 +235,123 @@ func rulePersistence(in *input) []report.Finding {
 			"Installers, updaters and system utilities legitimately reference the same keys; the strings do not show the program writes them.",
 		},
 	}}
+}
+
+// StringEvidence returns the strings of rep that back the finding with the given
+// ID: the ones the rule behind the finding reads, the most telling first (URLs
+// before public IP addresses, domains and e-mail addresses; command lines with
+// download, encoding or hidden-execution patterns before the others) and every
+// distinct value once, at the offset where it first appears. Secrets are listed
+// in file order and never merged, because two different secrets can have the
+// same redacted form. The items carry the values the scanner stored, which are
+// already redacted for secrets.
+//
+// It returns nil for a finding that is not derived from strings. It lets a
+// caller that has the file bytes (the rules themselves only see the report)
+// show what the finding is about without repeating how the rules choose.
+func StringEvidence(rep *report.Report, findingID string) []report.StringItem {
+	switch findingID {
+	case "indicators.network":
+		return firstOfEach(networkItems(rep))
+	case "indicators.suspicious-commands":
+		return firstOfEach(commandItems(rep))
+	case "indicators.persistence-registry":
+		return firstOfEach(persistenceItems(rep))
+	}
+	if kind, ok := strings.CutPrefix(findingID, "secrets."); ok {
+		return secretItems(rep, kind)
+	}
+	return nil
+}
+
+// networkItems lists the strings behind indicators.network, most telling first.
+func networkItems(rep *report.Report) []report.StringItem {
+	var out []report.StringItem
+	out = append(out, indicatorItems(rep, report.CatURL)...)
+	out = append(out, publicIPItems(rep)...)
+	out = append(out, indicatorItems(rep, report.CatDomain)...)
+	out = append(out, indicatorItems(rep, report.CatEmail)...)
+	return out
+}
+
+// publicIPItems returns the IP address strings that are public addresses.
+func publicIPItems(rep *report.Report) []report.StringItem {
+	var out []report.StringItem
+	for _, it := range indicatorItems(rep, report.CatIP) {
+		if isPublicIP(strings.TrimSpace(it.Value)) {
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
+// isStrongCommand reports whether a command line carries a download, encoding or
+// hidden-execution pattern.
+func isStrongCommand(cmd string) bool {
+	l := strings.ToLower(cmd)
+	for _, m := range strongCommandMarkers {
+		if strings.Contains(l, m) {
+			return true
+		}
+	}
+	return false
+}
+
+// commandItems lists the command-line strings, those with strong patterns first.
+func commandItems(rep *report.Report) []report.StringItem {
+	var strong, rest []report.StringItem
+	for _, it := range indicatorItems(rep, report.CatCommand) {
+		if isStrongCommand(it.Value) {
+			strong = append(strong, it)
+		} else {
+			rest = append(rest, it)
+		}
+	}
+	return append(strong, rest...)
+}
+
+// persistenceItems returns the registry strings that name an autostart or
+// hijacking location.
+func persistenceItems(rep *report.Report) []report.StringItem {
+	var out []report.StringItem
+	for _, it := range indicatorItems(rep, report.CatRegistry) {
+		l := strings.ToLower(it.Value)
+		for _, m := range persistenceMarkers {
+			if strings.Contains(l, m) {
+				out = append(out, it)
+				break
+			}
+		}
+	}
+	return out
+}
+
+// secretItems returns the secret strings of one finding: the kind named after
+// "secrets." or, for "unclassified", every kind that has no finding of its own.
+func secretItems(rep *report.Report, kind string) []report.StringItem {
+	var out []report.StringItem
+	for _, it := range itemsOf(rep, report.CatSecret) {
+		_, known := secretSpecs[it.Kind]
+		if it.Kind == kind || (kind == "unclassified" && !known) {
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
+// firstOfEach keeps the first string of every distinct value (compared without
+// surrounding white space) and drops blank ones, as uniqueValues does for the
+// evidence lines of a finding.
+func firstOfEach(items []report.StringItem) []report.StringItem {
+	seen := make(map[string]bool, len(items))
+	out := make([]report.StringItem, 0, len(items))
+	for _, it := range items {
+		v := strings.TrimSpace(it.Value)
+		if v == "" || seen[v] {
+			continue
+		}
+		seen[v] = true
+		out = append(out, it)
+	}
+	return out
 }

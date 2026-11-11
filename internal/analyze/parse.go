@@ -32,7 +32,10 @@ func parseFormat(s *stages, r io.ReaderAt, size int64, lim limits.Limits) {
 	rep := s.rep
 	switch rep.Type.ID {
 	case report.TypePE:
-		s.parse("pe", func() ([]string, error) { return parsePE(s.ctx, rep, r, size, lim) })
+		s.parse("pe", func() (notes []string, err error) {
+			notes, s.layout, err = parsePEImage(s.ctx, rep, r, size, lim)
+			return notes, err
+		})
 	case report.TypeELF:
 		s.parse("elf", func() ([]string, error) { return parseELF(s.ctx, rep, r, size, lim) })
 	case report.TypeMachO, report.TypeMachOFat:
@@ -86,14 +89,21 @@ func parseFormat(s *stages, r io.ReaderAt, size int64, lim limits.Limits) {
 }
 
 func parsePE(ctx context.Context, rep *report.Report, r io.ReaderAt, size int64, lim limits.Limits) ([]string, error) {
+	notes, _, err := parsePEImage(ctx, rep, r, size, lim)
+	return notes, err
+}
+
+// parsePEImage is parsePE that also returns the layout of the image (nil when
+// nothing could be read), which the scan for the code behind imports needs.
+func parsePEImage(ctx context.Context, rep *report.Report, r io.ReaderAt, size int64, lim limits.Limits) ([]string, *pe.Layout, error) {
 	res, err := pe.Parse(ctx, r, size, lim)
 	if res == nil {
-		return nil, err
+		return nil, nil, err
 	}
 	rep.Sections, rep.Imports, rep.Exports, rep.Hardening = res.Sections, res.Imports, res.Exports, res.Hardening
 	rep.Hashes.Imphash = res.ImpHash
 	rep.Details["pe"] = res.Details
-	return res.Notes, err
+	return res.Notes, &res.Layout, err
 }
 
 func parseELF(ctx context.Context, rep *report.Report, r io.ReaderAt, size int64, lim limits.Limits) ([]string, error) {

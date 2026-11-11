@@ -308,7 +308,11 @@ func TestOpenAPISchemasMatchTheReportContract(t *testing.T) {
 	r.Imports = []report.Import{{Library: "k.dll", Count: 1, Functions: []string{"f"}}}
 	r.Strings.Items = []report.StringItem{{Value: "v", Kind: "k"}}
 	r.Hardening = []report.Hardening{{ID: report.HardenASLR, Status: report.StatusEnabled}}
-	r.Findings = []report.Finding{{ID: "a.b", Severity: report.SeverityLow}}
+	r.Findings = []report.Finding{{ID: "a.b", Severity: report.SeverityLow, Code: []report.CodeBlock{{
+		Kind: report.CodeKindDisasm, Title: "t", File: "f", Section: ".text", Offset: 1, Address: 0x140001000, Arch: "x86-64", Truncated: true,
+		Lines:       []report.CodeLine{{Address: 0x140001000, Offset: 1, Bytes: "ff 15", Text: "call", Note: "n", Highlight: true, Line: 1}},
+		Limitations: []string{"l"},
+	}}}}
 	r.Normalize()
 	raw, err := json.Marshal(r)
 	if err != nil {
@@ -321,8 +325,11 @@ func TestOpenAPISchemasMatchTheReportContract(t *testing.T) {
 	first := func(v any) map[string]any { return v.([]any)[0].(map[string]any) }
 	obj := func(v any) map[string]any { return v.(map[string]any) }
 	strs := obj(m["strings"])
+	code := first(first(m["findings"])["code"])
 
 	reportShapes := map[string]map[string]any{
+		"CodeBlock":   code,
+		"CodeLine":    first(code["lines"]),
 		"Report":      m,
 		"Tool":        obj(m["tool"]),
 		"File":        obj(m["file"]),
