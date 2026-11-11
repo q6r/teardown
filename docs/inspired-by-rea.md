@@ -38,7 +38,7 @@ for that.
 
 ## What teardown is not
 
-- Not a decompiler, disassembler or sandbox, and not a replacement for any of them.
+- Not a decompiler, disassembler or sandbox, and not a replacement for any of them. A small disassembler that shows the code around suspicious imports is planned for 15 November 2026 (see the roadmap in the README); it will still not be a decompiler.
 - Not an antivirus or a malware verdict engine. The risk score (0-100) is a deterministic triage aid
   whose arithmetic is printed with the result; labels such as "high" mean "look at this sooner".
 - Not exhaustive: HAR files, packet captures, EVM bytecode, firmware unpacking and most of REA's other

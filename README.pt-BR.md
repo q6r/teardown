@@ -329,7 +329,7 @@ Vulnerabilidades: veja [SECURITY.md](SECURITY.md).
 
 ### Limitações
 
-O teardown é uma primeira olhada, não um sandbox nem um antivírus. Ele não desmonta, não emula e não desempacota. Empacotadores e protetores escondem código e importações da análise estática; importações resolvidas em tempo de execução ficam invisíveis. Os achados são heurísticas: cada um diz como pode ser um falso positivo. Assinaturas Authenticode e de código são detectadas, não verificadas. As permissões do Android são lidas do manifesto de forma heurística. PDF, SQLite, safetensors, imagens e formatos de compressão são reconhecidos, mas não interpretados. Os relatórios ficam na memória e somem quando o servidor para.
+O teardown é uma primeira olhada, não um sandbox nem um antivírus. Ele não desmonta, não emula e não desempacota (um disassembler pequeno para o código como evidência está no roteiro). Empacotadores e protetores escondem código e importações da análise estática; importações resolvidas em tempo de execução ficam invisíveis. Os achados são heurísticas: cada um diz como pode ser um falso positivo. Assinaturas Authenticode e de código são detectadas, não verificadas. As permissões do Android são lidas do manifesto de forma heurística. PDF, SQLite, safetensors, imagens e formatos de compressão são reconhecidos, mas não interpretados. Os relatórios ficam na memória e somem quando o servidor para.
 
 ## Testes
 
@@ -343,7 +343,16 @@ make fuzz FUZZTIME=20s          # cada alvo de fuzzing nativo, 20 s cada
 
 ## Roteiro
 
-Ideias, em ordem aproximada, não promessas:
+**Planejado, pronto até 15 de novembro de 2026: código como evidência.** Hoje o teardown mostra o que achou (nomes de APIs, strings, flags de seção). A próxima versão mostra o código por trás de cada achado, para quem desenvolve:
+
+- um hexdump, com offsets, dos bytes que causaram o achado;
+- os pontos onde as importações suspeitas são chamadas, com o disassembly ao redor, por exemplo onde `VirtualAllocEx`, `WriteProcessMemory` e `CreateRemoteThread` são chamadas (um disassembler x86 e x86-64 próprio e pequeno, conferido contra o do toolchain do Go);
+- as linhas de código-fonte correspondentes para scripts dentro de arquivos ASAR e ZIP;
+- tudo isso por novos comandos do CLI (`disasm`, `xrefs`, `hexdump`), no relatório, no painel e em ferramentas MCP que agentes podem chamar.
+
+Continuará não sendo um decompilador, e o ARM64 vem depois.
+
+Outras ideias, em ordem aproximada, não promessas:
 
 - Parsers para safetensors, SQLite e a estrutura de PDF; metadados de .NET e detalhes de classes Java.
 - Verificar assinaturas Authenticode e de código do macOS em vez de só detectá-las.

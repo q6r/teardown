@@ -329,7 +329,7 @@ Vulnerabilities: see [SECURITY.md](SECURITY.md).
 
 ### Limitations
 
-teardown is a first look, not a sandbox or an antivirus. It does not disassemble, emulate or unpack. Packers and protectors hide code and imports from static analysis; imports resolved at run time are invisible. Findings are heuristics: each lists how it can be a false positive. Authenticode and code signatures are detected, not verified. Android permissions are read from the manifest heuristically. PDF, SQLite, safetensors, images and compression formats are recognised but not parsed. Reports live in memory and disappear when the server stops.
+teardown is a first look, not a sandbox or an antivirus. It does not disassemble, emulate or unpack (a small disassembler for code evidence is on the roadmap). Packers and protectors hide code and imports from static analysis; imports resolved at run time are invisible. Findings are heuristics: each lists how it can be a false positive. Authenticode and code signatures are detected, not verified. Android permissions are read from the manifest heuristically. PDF, SQLite, safetensors, images and compression formats are recognised but not parsed. Reports live in memory and disappear when the server stops.
 
 ## Testing
 
@@ -343,7 +343,16 @@ make fuzz FUZZTIME=20s          # every native fuzz target, 20 s each
 
 ## Roadmap
 
-Ideas, in rough order, not promises:
+**Planned, ready by 15 November 2026: code evidence.** Today teardown shows what it found (API names, strings, section flags). The next version shows the code behind each finding, for developers:
+
+- a hex dump, with offsets, of the bytes that triggered a finding;
+- the call sites of suspicious imports with the disassembly around them, for example where `VirtualAllocEx`, `WriteProcessMemory` and `CreateRemoteThread` are called (a small built-in x86 and x86-64 disassembler, checked against the Go toolchain's own);
+- the matching source lines for scripts inside ASAR and ZIP files;
+- all of it through new CLI commands (`disasm`, `xrefs`, `hexdump`), the report, the dashboard and MCP tools that agents can call.
+
+It will still not be a decompiler, and ARM64 comes later.
+
+Other ideas, in rough order, not promises:
 
 - Parsers for safetensors, SQLite and PDF structure; .NET metadata and Java class details.
 - Verifying Authenticode and macOS code signatures instead of only detecting them.
