@@ -139,7 +139,7 @@ func hexTitle(picks []*pick) string {
 		if picks[0].item.Category == report.CatSecret {
 			t += " (value masked)"
 		}
-		return clipRunes(t, report.MaxCodeLabelChars)
+		return clipRunes(t)
 	}
 	labels := make([]string, len(picks))
 	lowest := picks[0].start
@@ -153,7 +153,7 @@ func hexTitle(picks []*pick) string {
 	if secret {
 		t += " (values masked)"
 	}
-	return clipRunes(t, report.MaxCodeLabelChars)
+	return clipRunes(t)
 }
 
 // hexLimitations states what a hex window cannot show.
@@ -175,7 +175,7 @@ func (e *evidence) sectionAt(off int64) string {
 	}
 	for _, s := range e.rep.Sections {
 		// off is not negative, so the conversion keeps its value.
-		if s.RawSize > 0 && uint64(off) >= s.Offset && uint64(off)-s.Offset < s.RawSize { //nolint:gosec // off >= 0 checked above
+		if s.RawSize > 0 && uint64(off) >= s.Offset && uint64(off)-s.Offset < s.RawSize {
 			return labelText(s.Name)
 		}
 	}

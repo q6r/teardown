@@ -52,7 +52,7 @@ func TestAddrRejectsGarbageAndKeepsItsValue(t *testing.T) {
 			t.Errorf("Unmarshal(%s) failed but changed the value to %#x", in, uint64(back))
 		}
 	}
-	if err := (*Addr)(new(Addr)).UnmarshalText([]byte(strings.Repeat("z", 5000))); err == nil || len(err.Error()) > 200 {
+	if err := new(Addr).UnmarshalText([]byte(strings.Repeat("z", 5000))); err == nil || len(err.Error()) > 200 {
 		t.Errorf("the error for a huge value must stay short, got %v", err)
 	}
 	var null Addr = 9

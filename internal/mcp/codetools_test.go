@@ -274,7 +274,7 @@ func TestReadBytes(t *testing.T) {
 		if len(lines) != 2 || lines[0]["text"] != "a.[31m...<script" || lines[1]["text"] != ">." {
 			t.Errorf("ascii rows = %v", lines)
 		}
-		if strings.ContainsAny(res.text(), "\x1b\x00\x85") {
+		if strings.ContainsAny(res.text(), "\x1b\x00"+string(rune(0x85))) {
 			t.Errorf("raw control characters in the result: %q", res.text())
 		}
 	})

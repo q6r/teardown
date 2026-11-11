@@ -50,7 +50,7 @@ func Locate(ctx context.Context, r io.ReaderAt, size int64, offsets []int64) ([]
 			return
 		}
 		// A stored member cannot be longer than the file; size >= 0 here, so the conversion is exact.
-		length := int64(min(e.CompressedSize, uint64(max(size, 0)))) //nolint:gosec // bounded by the file size above
+		length := int64(min(e.CompressedSize, uint64(max(size, 0))))
 		var dataOff int64
 		resolved, usable := false, false
 		for i, off := range probes {

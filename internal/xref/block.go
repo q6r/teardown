@@ -61,7 +61,7 @@ func (ix *Index) title(s Site) string {
 }
 
 // clip shortens s to at most n characters, ending with an ellipsis.
-func clip(s string, n int) string {
+func clip(s string, n int) string { //nolint:unparam // the label and line limits are separate constants that happen to be equal
 	if utf8.RuneCountInString(s) <= n {
 		return s
 	}

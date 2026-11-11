@@ -248,11 +248,11 @@ func sourceTitle(marks []mark, line int64) string {
 	}
 	switch {
 	case hints:
-		return clipRunes("Source lines for "+joinLabels(labels), report.MaxCodeLabelChars)
+		return clipRunes("Source lines for " + joinLabels(labels))
 	case len(marks) == 1:
-		return clipRunes(fmt.Sprintf("Source lines around the %s at line %d", labels[0], line), report.MaxCodeLabelChars)
+		return clipRunes(fmt.Sprintf("Source lines around the %s at line %d", labels[0], line))
 	}
-	return clipRunes(fmt.Sprintf("Source lines around %s, from line %d", describeStrings(labels), line), report.MaxCodeLabelChars)
+	return clipRunes(fmt.Sprintf("Source lines around %s, from line %d", describeStrings(labels), line))
 }
 
 // sourceLimitations states what an excerpt cannot show.
@@ -365,8 +365,9 @@ func clipAround(text string, center, limit int) string {
 	return string(out)
 }
 
-// clipRunes shortens s to at most n characters, ending with an ellipsis.
-func clipRunes(s string, n int) string {
+// clipRunes shortens s to at most report.MaxCodeLabelChars characters, ending with an ellipsis.
+func clipRunes(s string) string {
+	const n = report.MaxCodeLabelChars
 	if utf8.RuneCountInString(s) <= n {
 		return s
 	}
@@ -376,5 +377,5 @@ func clipRunes(s string, n int) string {
 // labelText makes a name from the file (an entry path, a section name) safe to
 // use as a label and short enough for one.
 func labelText(s string) string {
-	return clipRunes(sanitizeText(s), report.MaxCodeLabelChars)
+	return clipRunes(sanitizeText(s))
 }

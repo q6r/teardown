@@ -183,7 +183,7 @@ func unsupportedImage(im codeview.Image) error {
 // noSuchImport explains a name that matches no import, and names the imports
 // that are called so a misspelling is easy to fix.
 func noSuchImport(api string, ix *xref.Index) error {
-	msg := fmt.Sprintf(`no import of this file matches "%s"`, binio.Printable(api, 80))
+	msg := `no import of this file matches "` + binio.Printable(api, 80) + `"`
 	called := ix.APIs()
 	if len(called) == 0 {
 		return userErrorf("%s; none of its imports has a call site in the executable sections", msg)

@@ -340,7 +340,7 @@ func TestMarkdownShowsCodeAsFencedBlocks(t *testing.T) {
 	}
 	// The order inside a finding: evidence, the code, then how it can be wrong.
 	e, c, l := strings.Index(out, "Evidence:"), strings.Index(out, "Code:\n\n####"), strings.Index(out, "Limitations:")
-	if !(e >= 0 && c > e && l > c) {
+	if e < 0 || c <= e || l <= c {
 		t.Errorf("order of the sections is wrong: evidence %d, code %d, limitations %d", e, c, l)
 	}
 	if without := renderMarkdown(t, codeSampleReport().WithoutCode()); strings.Contains(without, "```") || strings.Contains(without, "Code:") {

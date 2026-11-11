@@ -146,7 +146,7 @@ func TestSanitizeTextOutputAlwaysPassesTheModelChecks(t *testing.T) {
 	inputs := []string{"", "plain", "\x00\x01\x02", "\xff\xfe", "tab\there", string(rune(0x202e)) + "rtl", "é́", strings.Repeat("\x1b", 300)}
 	for _, in := range inputs {
 		out := sanitizeText(in)
-		b := report.CodeBlock{Kind: report.CodeKindSource, Lines: []report.CodeLine{{Line: 1, Text: clipRunes(out, report.MaxCodeLineChars)}}, Limitations: []string{"x"}}
+		b := report.CodeBlock{Kind: report.CodeKindSource, Lines: []report.CodeLine{{Line: 1, Text: clipRunes(out)}}, Limitations: []string{"x"}}
 		if err := b.Validate(); err != nil {
 			t.Errorf("sanitizeText(%q) = %q: %v", in, out, err)
 		}
