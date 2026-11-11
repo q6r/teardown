@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-11
+
 ### Added
 
 - Code evidence: a finding can show the code behind it. `findings[].code` is a new optional list of blocks

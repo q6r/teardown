@@ -36,7 +36,9 @@ English · [Português](README.pt-BR.md)
 
 ## Quick start
 
-Needs Go 1.24 or newer and nothing else. Clone the repository, then build:
+Every tagged version has ready-made archives for Linux, macOS and Windows (amd64 and arm64) on the
+[Releases page](https://github.com/q6r/teardown/releases), with a `checksums.txt` to verify them. To build from source instead,
+you need Go 1.24 or newer and nothing else. Clone the repository, then build:
 
 ```bash
 go build -o bin/teardown ./cmd/teardown        # on Windows the binary is bin\teardown.exe
@@ -454,7 +456,7 @@ make fuzz FUZZTIME=20s          # every native fuzz target, 20 s each
 
 ## Roadmap
 
-**On the main branch now: code evidence** (it is not in a tagged release yet). teardown shows the code behind its findings, for developers ([how it works](docs/code-evidence.md)):
+**New in 0.2.0: code evidence.** teardown shows the code behind its findings, for developers ([how it works](docs/code-evidence.md)):
 
 - a small x86 and x86-64 decoder, checked against the Go toolchain's own disassembler;
 - the call sites of the imports behind a finding, with the instructions around each call, in PE images for x86-64 (32-bit PE images are handled but tested only with a hand-made image), for example where `VirtualAllocEx`, `WriteProcessMemory` and `CreateRemoteThread` are called;

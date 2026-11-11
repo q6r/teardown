@@ -36,7 +36,9 @@
 
 ## Início rápido
 
-Precisa de Go 1.24 ou mais novo e de mais nada. Clone o repositório e compile:
+Cada versão com tag tem arquivos prontos para Linux, macOS e Windows (amd64 e arm64) na
+[página de Releases](https://github.com/q6r/teardown/releases), com um `checksums.txt` para conferi-los. Para compilar a partir do
+código-fonte, você precisa de Go 1.24 ou mais novo e de mais nada. Clone o repositório e compile:
 
 ```bash
 go build -o bin/teardown ./cmd/teardown        # no Windows o binário é bin\teardown.exe
@@ -454,7 +456,7 @@ make fuzz FUZZTIME=20s          # cada alvo de fuzzing nativo, 20 s cada
 
 ## Roteiro
 
-**Na branch principal agora: código como evidência** (ainda não está em uma versão publicada). O teardown mostra o código por trás dos achados, para quem desenvolve ([como funciona](docs/code-evidence.md), em inglês):
+**Novo na 0.2.0: código como evidência.** O teardown mostra o código por trás dos achados, para quem desenvolve ([como funciona](docs/code-evidence.md), em inglês):
 
 - um decodificador x86 e x86-64 pequeno, conferido contra o disassembler do próprio toolchain do Go;
 - os pontos de chamada das importações por trás de um achado, com as instruções em volta de cada chamada, em imagens PE para x86-64 (imagens PE de 32 bits são tratadas, mas só foram testadas com uma imagem feita à mão), por exemplo onde `VirtualAllocEx`, `WriteProcessMemory` e `CreateRemoteThread` são chamadas;
